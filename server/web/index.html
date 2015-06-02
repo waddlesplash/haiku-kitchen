@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Haiku Kitchen</title>
+
+	<link rel="stylesheet" type="text/css" href="assets/style.css">
+	<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700" rel="stylesheet" type="text/css">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/stupidtable/0.0.1/stupidtable.js"></script>
+	<script type="text/javascript" src="assets/app.js"></script>
+</head>
+<body>
+
+<div id="header" class="container">
+	<div id="logo">
+		<a href="#/"><img alt="HPKG icon" src="assets/hpkg-icon.png">Kitchen</a>
+	</div>
+	<div id="menu">
+		<ul>
+			<li class="recipes"><a href="#/recipes">Recipes</a></li>
+			<li class="builders"><a href="#/builders">Builders</a></li>
+			<li class="builds"><a href="#/builds">Builds</a></li>
+		</ul>
+	</div>
+</div>
+
+<div id="page">
+<div class="container">
+
+<center id="loading-placeholder"><i class="fa fa-refresh fa-spin fa-5x fa-fw" style="padding: 10px 0px;"></i></center>
+
+<div id="pageContents" style="display: none;">
+	<div id="pageTitle">
+		<h2></h2>
+		<p></p>
+	</div>
+	<div id="pageContentsBody">
+	</div>
+</div>
+
+</div>
+</div>
+
+<div id="copyright" class="container">
+    <p>&copy; 2015 Haiku, Inc.</p>
+</div>
+
+</body>
+</html>

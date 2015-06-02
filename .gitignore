@@ -1,0 +1,10 @@
+# npm stuff
+node_modules
+
+# files created by text editors
+*.autosave
+*~
+
+# files created by the kitchen server itself
+server/cache
+server/data
