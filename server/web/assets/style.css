@@ -20,211 +20,18 @@ p, ol, ul {
 	margin-top: 0
 }
 
-p {
-}
-
-p {
-	line-height: 180%
-}
-
-strong {
-}
-
 a {
-	color: #383326
+	color: #383326;
 }
 
 a:hover {
-	text-decoration: none
+	color: #807457;
 }
 
 .container {
 	width: 95%;
 	overflow: hidden;
 	margin: 0 auto;
-}
-
-/*********************************************************************************/
-/* Image Style                                                                   */
-/*********************************************************************************/
-.image {
-	display: inline-block;
-}
-
-.image img {
-	display: block;
-	width: 100%
-}
-
-.image-full {
-	display: block;
-	width: 100%;
-	margin: 0 0 2em;
-}
-
-.image-left {
-	float: left;
-	margin: 0 2em 2em 0;
-}
-
-.image-centered {
-	display: block;
-	margin: 0 0 2em;
-}
-
-.image-centered img {
-	margin: 0 auto;
-	width: auto;
-}
-
-/*********************************************************************************/
-/* List Styles                                                                   */
-/*********************************************************************************/
-ul.style1 {
-}
-
-/*********************************************************************************/
-/* Title Styles                                                                   */
-/*********************************************************************************/
-.title {
-	padding: 0;
-	margin-bottom: 1em;
-}
-
-.title #major {
-	margin-bottom: 1em;
-	text-transform: uppercase;
-	font-weight: 700;
-	font-size: 2em;
-	color: #383326;
-}
-
-.title #minor {
-	margin-left: 5px;
-}
-
-.subtitle {
-	padding: 0;
-	margin-bottom: .5em;
-	margin-top: 1em;
-}
-
-.subtitle #major {
-	margin-bottom: .5em;
-	text-transform: uppercase;
-	font-weight: 700;
-	font-size: 1.4em;
-	color: #383326;
-}
-
-/*********************************************************************************/
-/* Social Icon Styles                                                            */
-/*********************************************************************************/
-ul.contact {
-	margin: 0;
-	padding: 2em 0 0;
-	list-style: none;
-}
-
-ul.contact li {
-	display: inline-block;
-	padding: 0 .3em;
-	font-size: 1em;
-}
-
-ul.contact li span {
-	display: none;
-	margin: 0;
-	padding: 0;
-}
-
-ul.contact li a {
-	color: #FFF;
-}
-
-ul.contact li a: before {
-	display: inline-block;
-	background: #3f3f3f;
-	width: 40px;
-	height: 40px;
-	line-height: 40px;
-	border-radius: 20px;
-	text-align: center;
-	color: #FFF;
-}
-
-/*********************************************************************************/
-/* Button Style                                                                  */
-/*********************************************************************************/
-.button {
-	display: inline-block;
-	padding: 1em 3em 1em 2em;
-	background: #4C4532;
-	letter-spacing: .2em;
-	text-decoration: none;
-	text-transform: uppercase;
-	font-weight: 400;
-	font-size: .9em;
-	color: #FFF;
-}
-
-.button: before {
-	display: inline-block;
-	background: #FFC31F;
-	margin-right: 1em;
-	width: 40px;
-	height: 40px;
-	line-height: 40px;
-	border-radius: 20px;
-	text-align: center;
-	color: #272925;
-}
-
-/*********************************************************************************/
-/* 4-column                                                                      */
-/*********************************************************************************/
-.box1, .box2, .box3, .box4 {
-	width: 235px;
-}
-
-.box1, .box2, .box3 {
-	float: left;
-	margin-right: 20px;
-}
-
-.box4 {
-	float: right;
-}
-
-/*********************************************************************************/
-/* 3-column                                                                      */
-/*********************************************************************************/
-.boxA, .boxB, .boxC {
-	width: 320px;
-}
-
-.boxA, .boxB {
-	float: left;
-	margin-right: 20px;
-}
-
-.boxC {
-	float: right;
-}
-
-/*********************************************************************************/
-/* 2-column                                                                      */
-/*********************************************************************************/
-.tbox1, .tbox2 {
-	width: 575px;
-}
-
-.tbox1 {
-	float: left;
-}
-
-.tbox2 {
-	float: right;
 }
 
 /*********************************************************************************/
@@ -323,32 +130,18 @@ ul.contact li a: before {
 	color: rgba(255, 255, 255, 0.6);
 }
 
-.box {
-	background: #F0EFE9;
-	margin-bottom: 2em;
+/*********************************************************************************/
+/* FontAwesome                                                                   */
+/*********************************************************************************/
+i.fa.fa-check-circle, i.fa.fa-check-circle-o {
+	color: green;
 }
-
-.box .margin-btm {
-	margin-bottom: 2em;
-}
-
-.box .details {
-	display: block;
-	padding: 1em 2em;
+i.fa.fa-times-circle, i.fa.fa-times-circle-o {
+	color: red;
 }
 
 /*********************************************************************************/
-/* Pagination                                                                     */
-/*********************************************************************************/
-.pagination { margin-top: 5px; float: right; }
-.pagination a { padding: 2px 5px 2px 5px; margin: 2px; text-decoration: underline; color: #000099; background-color: #dbc088; }
-.pagination a:hover,
-.pagination a:active { padding: 2px 5px 2px 5px; margin: 2px; color: #dc3c01; background-color: #dbc088; }
-.pagination em.current { padding: 2px 5px 2px 5px; margin: 2px; font-weight: bold; background-color: #d43e3e; color: #FFF; }
-.pagination span.disabled { padding: 2px 5px 2px 5px; margin: 2px; text-decoration: none; background-color: #dbc088; }
-
-/*********************************************************************************/
-/* Tables                                                                     */
+/* Tables                                                                        */
 /*********************************************************************************/
 table {
 	border: 1px solid black;
@@ -371,13 +164,6 @@ table thead tr {
 	background-color: #cccccc !important;
 }
 
-i.fa.fa-check-circle, i.fa.fa-check-circle-o {
-	color: green;
-}
-i.fa.fa-times-circle, i.fa.fa-times-circle-o {
-	color: red;
-}
-
 table.sortable thead tr th {
 	cursor: pointer;
 }
@@ -395,6 +181,9 @@ table.sortable thead tr th.sorting-desc:after {
 	content: "\f0dd";
 }
 
+/*********************************************************************************/
+/* Builders                                                                      */
+/*********************************************************************************/
 div.builder {
 	background: rgba(0, 0, 0, 0.2);
 	border-radius: 20px;
