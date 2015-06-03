@@ -6,7 +6,15 @@
  *		Augustin Cavalier <waddlesplash>
  */
 
-var log = require('debug')('kitchen:index');
+var log = require('debug')('kitchen:index'), fs = require('fs');
+
+log('reading config files');
+if (!fs.existsSync('data/builders.json')) {
+	log('FATAL: no builders configuration file! set one up using kitchen.js.');
+	process.exit(1);
+}
+var builders = JSON.parse(fs.readFileSync('data/builders.json', {encoding: 'UTF-8'}));
+
 log("starting up");
 
 var optimist = require('optimist').default({'port': 8080})
@@ -37,14 +45,14 @@ app.get('/api/recipes', function (request, response) {
 });
 app.get('/api/builders', function (request, response) {
 	var respJson = {};
-	for (var i = 0; i < 5; i++) {
-		respJson["joei" + i] = {
-			owner: "John Doe",
-			hrev: 44827,
-			cores: 3,
-			architecture: "x86",
-			flavor: "gcc2hybrid",
-			online: (Math.random()*10 < 8)
+	for (var i in builders) {
+		respJson[i] = {
+			owner: builders[i].owner,
+			hrev: undefined,
+			cores: undefined,
+			architecture: undefined,
+			flavor: undefined,
+			online: false
 		};
 	}
 	response.writeHead(200, {'Content-Type': 'application/json'});

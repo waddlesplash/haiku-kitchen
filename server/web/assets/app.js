@@ -84,7 +84,6 @@ function showBuildersPage() {
 
 	$.ajax('/api/builders')
 		.done(function (data) {
-			$("#pageContentsBody").append('<div id="builderStats"></div>');
 			var onlineBuilders = 0, totalBuilders = 0;
 			for (var i in data) {
 				totalBuilders++;
@@ -96,12 +95,15 @@ function showBuildersPage() {
 					html += '<i class="fa fa-check-circle-o"></i>';
 				else
 					html += '<i class="fa fa-times-circle-o"></i>';
-				html += '</span>&nbsp;&nbsp;<span>owned by ' + data[i].owner + '<br>' +
-					'<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' + data[i].hrev +
-						'">hrev' + data[i].hrev + '</a>, ' +
-					data[i].cores + ' cores, ' +
-					data[i].architecture + ', ' +
-					data[i].flavor + '</div>';
+				html += '</span>&nbsp;&nbsp;<span>owned by ' +
+						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';
+				if (data[i].online) {
+					html += '<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' +
+							data[i].hrev + '">hrev' + data[i].hrev + '</a>, ' +
+						data[i].cores + ' cores, ' +
+						data[i].architecture + ', ' +
+						data[i].flavor + '</div>';
+				}
 				$("#pageContentsBody").append(html);
 			}
 			setPageTitle('Builders', "<b>" + onlineBuilders +
