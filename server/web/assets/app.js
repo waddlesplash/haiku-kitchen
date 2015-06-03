@@ -53,7 +53,7 @@ function showRecipesPage(data) {
 		.done(function (data) {
 			for (var i in data) {
 				var html =
-					'<tr><td><i class="fa fa-file-text-o"></i> ' + i + '</td>' +
+					'<tr><td><i class="fa fa-file-text-o"></i> ' + data[i].name + '</td>' +
 					'<td>' + data[i].category + '</td>' +
 					'<td>' + data[i].version + '</td>' +
 					'<td>' + data[i].revision + '</td><td>';
