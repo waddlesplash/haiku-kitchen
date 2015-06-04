@@ -105,6 +105,20 @@ function updateHaikuportsTree() {
 updateHaikuportsTree();
 timers.setInterval(updateHaikuportsTree, 10 * 60 * 1000);
 
+/*! ------------------------ builders ------------------------- */
+var options = {
+	key: fs.readFileSync('data/server.key'),
+	cert: fs.readFileSync('data/server.crt')
+};
+
+require('tls').createServer(options, function (socket) {
+	socket.write(JSON.stringify({what: 'getCpuCount'}) + '\n');
+	socket.on("data", function (data) {
+		console.log(JSON.parse(data.toString()));
+	});
+	socket.pipe(socket);
+}).listen(42458);
+
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = express();
 app.get('/api/recipes', function (request, response) {
