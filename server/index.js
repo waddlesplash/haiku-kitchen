@@ -8,7 +8,7 @@
 
 var log = require('debug')('kitchen'), fs = require('fs'),
 	shell = require('shelljs'), timers = require('timers'), zlib = require('zlib'),
-	glob = require('glob'), Recipe = require('./recipe.js').recipe;
+	glob = require('glob'), Recipe = require('./recipe.js');
 
 if (!shell.which('git')) {
 	log('FATAL: git must be installed to run this script.');

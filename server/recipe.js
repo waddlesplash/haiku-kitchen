@@ -11,7 +11,7 @@ var fs = require('fs');
 /*! This is a really rudimentary .recipe parser. It can't handle all of
  * Bash's syntax, but it handles enough for our purposes. */
 
-exports.recipe = function (filepath) {
+module.exports = function (filepath) {
 	if (!fs.existsSync(filepath)) {
 		throw "File does not exist!";
 	}
