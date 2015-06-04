@@ -30,6 +30,7 @@ log("starting up");
 
 /*! --------------------- haikuports tree --------------------- */
 var portsTree = new PortsTree();
+portsTree.update();
 timers.setInterval(portsTree.update, 10 * 60 * 1000);
 
 /*! ------------------------ builders ------------------------- */

@@ -74,18 +74,62 @@ module.exports = function () {
 		this._completeCacheRebuild();
 
 	this.update = function () {
+		var thisThis = this;
 		log('running git-pull...');
 		shell.cd('cache/haikuports');
+			var oldHead = shell.exec('git rev-parse HEAD', {silent: true})
+				.output.trim();
 			shell.exec('git pull --ff-only', {silent: true}, function (code, output) {
 				if (code) {
 					log('git-pull failed: ' + output);
 					log('recreating cache...');
-					_createCache();
+					thisThis._createCache();
 				} else if (output.indexOf('Already up-to-date.') >= 0) {
 					log('git-pull finished, no changes');
 				} else {
-					log('git-pull finished, updating cache...');
-					_completeCacheRebuild();
+					log('git-pull finished, doing incremental cache update...');
+					shell.cd('cache/haikuports');
+						var cmd = 'git diff ' + oldHead + '..HEAD --numstat';
+						shell.exec(cmd, {silent: true}, function (code, output) {
+							output = output.split(/\r*\n/);
+							var filesToUpdate = [], deletedEntries = 0;
+							for (var i in output) {
+								line = output[i].split('\t');
+								if (line.length != 3)
+									continue;
+								// 0 is additions, 1 is deletions, 2 is filename
+								if (!/\.recipe$/.test(line[2]))
+									continue;
+								if (line[1] == 0) {
+									// only additions, just add the file to the list
+									filesToUpdate.push('cache/haikuports/' + line[2]);
+									continue;
+								}
+								// There are some deletions in this file, so
+								// make sure it exists.
+								if (!fs.existsSync('cache/haikuports/' + line[2])) {
+									// doesn't exist, attempt to delete it from cache
+									var splitPath = line[2].split('/');
+									var name = splitPath[splitPath.length - 1].replace('.recipe', '');
+									if (name in thisThis.recipes) {
+										delete thisThis.recipes[name];
+										deletedEntries++;
+									} else {
+										// that file doesn't exist in the cache
+										log('incremental cache update failed, ' +
+											'doing full cache update instead');
+										thisThis._createCache();
+										return;
+									}
+								} else {
+									// still exists, we're good
+									filesToUpdate.push('cache/haikuports/' + line[2]);
+								}
+							}
+							log('deleted ' + deletedEntries + ' entries from the cache');
+							thisThis._updateCacheFor(filesToUpdate);
+						});
+					shell.cd('../..');
 				}
 			});
 		shell.cd('../..');
