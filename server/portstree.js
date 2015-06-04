@@ -67,18 +67,49 @@ module.exports = function () {
 		shell.cd('..');
 		_completeCacheRebuild();
 	};
+	this._writeCache = function () {
+		var recipesStr = JSON.stringify(this.recipes);
+		var headStr = JSON.stringify(this._HEAD);
+		fs.writeFile('cache/recipes.json', recipesStr, function (err) {
+			if (err) {
+				log('WARN: cache could not be written to disk: ' + err);
+				return;
+			}
+			fs.writeFile('cache/recipes-HEAD.json', headStr, function (err) {
+				if (err) {
+					log('WARN: cache-HEAD could not be written to disk: ' + err);
+					return;
+				}
+				log('saved cache to disk successfully.');
+			});
+		});
+	};
 
-	if (!fs.existsSync('cache/haikuports/'))
-		this._createCache();
-	else
-		this._completeCacheRebuild();
+	if (fs.existsSync('cache/recipes.json') &&
+		fs.existsSync('cache/recipes-HEAD.json')) {
+		log('cache exists on disk, loading...');
+		this.recipes = JSON.parse(fs.readFileSync('cache/recipes.json',
+			{encoding: 'UTF-8'}));
+		this._HEAD = JSON.parse(fs.readFileSync('cache/recipes-HEAD.json',
+			{encoding: 'UTF-8'}));
+		this._updateClientCache();
+		log('finished loading the cache.');
+	} else {
+		log('no cache on disk, creating it...');
+		if (!fs.existsSync('cache/haikuports/'))
+			this._createCache();
+		else
+			this._completeCacheRebuild();
+		this._HEAD = shell.exec('git rev-parse HEAD', {silent: true})
+				.output.trim();
+		this._writeCache();
+		log('cache created successfully.');
+	}
 
 	this.update = function () {
 		var thisThis = this;
 		log('running git-pull...');
 		shell.cd('cache/haikuports');
-			var oldHead = shell.exec('git rev-parse HEAD', {silent: true})
-				.output.trim();
 			shell.exec('git pull --ff-only', {silent: true}, function (code, output) {
 				if (code) {
 					log('git-pull failed: ' + output);
@@ -89,7 +120,7 @@ module.exports = function () {
 				} else {
 					log('git-pull finished, doing incremental cache update...');
 					shell.cd('cache/haikuports');
-						var cmd = 'git diff ' + oldHead + '..HEAD --numstat';
+						var cmd = 'git diff ' + thisThis._HEAD + '..HEAD --numstat';
 						shell.exec(cmd, {silent: true}, function (code, output) {
 							output = output.split(/\r*\n/);
 							var filesToUpdate = [], deletedEntries = 0;
@@ -128,6 +159,10 @@ module.exports = function () {
 							}
 							log('deleted ' + deletedEntries + ' entries from the cache');
 							thisThis._updateCacheFor(filesToUpdate);
+
+							thisThis._HEAD = shell.exec('git rev-parse HEAD', {silent: true})
+								.output.trim();
+							thisThis._writeCache();
 						});
 					shell.cd('../..');
 				}
