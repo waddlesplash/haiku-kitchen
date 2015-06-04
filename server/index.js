@@ -7,7 +7,7 @@
  */
 
 var log = require('debug')('kitchen'), fs = require('fs'),
-	shell = require('shelljs'), timers = require('timers'),
+	shell = require('shelljs'), timers = require('timers'), zlib = require('zlib'),
 	glob = require('glob'), Recipe = require('./recipe.js').recipe;
 
 if (!shell.which('git')) {
@@ -37,9 +37,9 @@ log("starting up");
 /*! --------------------- haikuports tree --------------------- */
 var fRecipes, fClientRecipes;
 function updateClientCache() {
-	fClientRecipes = [];
+	var newClientRecipes = [];
 	for (var i in fRecipes) {
-		fClientRecipes.push({
+		newClientRecipes.push({
 			name: fRecipes[i].name,
 			category: fRecipes[i].category,
 			version: fRecipes[i].version,
@@ -47,7 +47,9 @@ function updateClientCache() {
 			lint: '?'
 		});
 	}
-	fClientRecipes = JSON.stringify(fClientRecipes);
+	zlib.gzip(JSON.stringify(newClientRecipes), {level: 9}, function (err, res) {
+		fClientRecipes = res;
+	});
 }
 function updateCacheFor(files) {
 	log('cache: updating ' + files.length + ' entries...');
@@ -106,7 +108,7 @@ timers.setInterval(updateHaikuportsTree, 10 * 60 * 1000);
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = express();
 app.get('/api/recipes', function (request, response) {
-	response.writeHead(200, {'Content-Type': 'application/json'});
+	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
 	response.end(fClientRecipes);
 });
 app.get('/api/builders', function (request, response) {
