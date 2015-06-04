@@ -2,9 +2,13 @@
   "name": "kitchen",
   "version": "0.0.1",
   "description": "The package buildserver for the Haiku operating system.",
-  "main": "index.js",
+  "main": "server/kitchen.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waddlesplash/haiku-kitchen.git"
   },
   "author": "Haiku, Inc.",
   "license": "MIT",
