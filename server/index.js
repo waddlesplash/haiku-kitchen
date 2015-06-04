@@ -7,14 +7,8 @@
  */
 
 var log = require('debug')('kitchen:index'), fs = require('fs'),
-	PortsTree = require('./portstree.js'), timers = require('timers');
-
-log('reading config files');
-if (!fs.existsSync('data/builders.json')) {
-	log('FATAL: no builders configuration file! set one up using kitchen.js.');
-	process.exit(1);
-}
-var fBuilders = JSON.parse(fs.readFileSync('data/builders.json', {encoding: 'UTF-8'}));
+	PortsTree = require('./portstree.js'),
+	BuilderManager = require('./builders.js'), timers = require('timers');
 
 var optimist = require('optimist').default({'port': 8080})
 	.describe({
@@ -34,18 +28,7 @@ portsTree.update();
 timers.setInterval(portsTree.update, 10 * 60 * 1000);
 
 /*! ------------------------ builders ------------------------- */
-var options = {
-	key: fs.readFileSync('data/server.key'),
-	cert: fs.readFileSync('data/server.crt')
-};
-
-require('tls').createServer(options, function (socket) {
-	socket.write(JSON.stringify({what: 'getCpuCount'}) + '\n');
-	socket.on("data", function (data) {
-		console.log(JSON.parse(data.toString()));
-	});
-	socket.pipe(socket);
-}).listen(42458);
+var builderManager = new BuilderManager();
 
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = express();
@@ -55,14 +38,14 @@ app.get('/api/recipes', function (request, response) {
 });
 app.get('/api/builders', function (request, response) {
 	var respJson = {};
-	for (var i in fBuilders) {
+	for (var i in builderManager.builders) {
 		respJson[i] = {
-			owner: fBuilders[i].owner,
-			hrev: undefined,
-			cores: undefined,
-			architecture: undefined,
-			flavor: undefined,
-			online: false
+			owner: builderManager.builders[i].owner,
+			hrev: builderManager.builders[i].hrev,
+			cores: builderManager.builders[i].cores,
+			architecture: builderManager.builders[i].architecture,
+			flavor: builderManager.builders[i].flavor,
+			online: ('ip' in builderManager.builders[i])
 		};
 	}
 	response.writeHead(200, {'Content-Type': 'application/json'});

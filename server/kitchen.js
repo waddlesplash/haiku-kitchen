@@ -90,6 +90,7 @@ case 'builder:destroy':
 	}
 	delete builders[name];
 	fs.writeFileSync('data/builders.json', JSON.stringify(builders));
+	console.log("Builder '" + name + "' destroyed successfully.");
 	break;
 
 default:

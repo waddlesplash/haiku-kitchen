@@ -100,7 +100,7 @@ function showBuildersPage() {
 				if (data[i].online) {
 					html += '<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' +
 							data[i].hrev + '">hrev' + data[i].hrev + '</a>, ' +
-						data[i].cores + ' cores, ' +
+						data[i].cores + (data[i].cores > 1 ? ' cores' : ' core') + ', ' +
 						data[i].architecture + ', ' +
 						data[i].flavor + '</div>';
 				}

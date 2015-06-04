@@ -72,12 +72,12 @@ module.exports = function () {
 		var headStr = JSON.stringify(this._HEAD);
 		fs.writeFile('cache/recipes.json', recipesStr, function (err) {
 			if (err) {
-				log('WARN: cache could not be written to disk: ' + err);
+				log('WARN: cache could not be written to disk: ', err);
 				return;
 			}
 			fs.writeFile('cache/recipes-HEAD.json', headStr, function (err) {
 				if (err) {
-					log('WARN: cache-HEAD could not be written to disk: ' + err);
+					log('WARN: cache-HEAD could not be written to disk: ', err);
 					return;
 				}
 				log('saved cache to disk successfully.');

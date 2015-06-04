@@ -5,6 +5,9 @@ node_modules
 *.autosave
 *~
 
-# files created by the kitchen server itself
+# files used by the kitchen server
 server/cache
 server/data
+
+# files used by the kitchen client
+builder.conf
