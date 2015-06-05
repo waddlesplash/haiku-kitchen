@@ -87,13 +87,12 @@ function showBuildersPage() {
 			var onlineBuilders = 0, totalBuilders = 0;
 			for (var i in data) {
 				totalBuilders++;
-				if (data[i].online)
-					onlineBuilders++;
 				var html =
 					'<div class="builder"><span class="heading"> ' + i + ' ';
-				if (data[i].online)
+				if (data[i].online) {
+					onlineBuilders++;
 					html += '<i class="fa fa-check-circle-o"></i>';
-				else
+				} else
 					html += '<i class="fa fa-times-circle-o"></i>';
 				html += '</span>&nbsp;&nbsp;<span>owned by ' +
 						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';
