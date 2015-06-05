@@ -6,10 +6,18 @@
 # Authors:
 #		Augustin Cavalier <waddlesplash>
 
-import os.path, socket, ssl, json, subprocess, multiprocessing
+import os, atexit, socket, ssl, json, subprocess, multiprocessing
 
 if (not os.path.isfile('builder.conf')):
 	raise IOError("Configuration file 'builder.conf' does not exist!")
+
+wantToExit = False
+def exit_handler():
+	if (not wantToExit):
+		# something happened (probably socket close?) so just restart
+		print "Something happened; restarting process..."
+		os.execv(__file__, sys.argv)
+atexit.register(exit_handler)
 
 sock = socket.socket()
 sock.connect(("10.0.2.2", 42458))
@@ -23,19 +31,14 @@ sock = ssl.wrap_socket(sock, ssl_version = ssl.PROTOCOL_TLSv1,
 
 with open ('builder.conf', 'r') as confFile:
     conf = json.loads(confFile.read().replace('\n', ''))
-
 authMsg = {'what': 'auth', 'name': conf['name'], 'key': conf['key']}
 sock.recv(1) # wait until we recieve the first newline
 sendJSON(authMsg)
 
-good = True
 dataBuf = ''
-while good:
+while True:
 	while (not ('\n' in dataBuf)):
 		dataBuf += sock.recv(1024)
-		if (len(dataBuf) == 0):
-			good = False
-			sock.close()
 	data = dataBuf.split('\n')
 	dataBuf = data[-1]
 	del data[-1]
@@ -55,4 +58,8 @@ while good:
 		elif (msg['what'] == 'getCores'):
 			reply['what'] = 'coreCount'
 			reply['count'] = multiprocessing.cpu_count()
+		elif (msg['what'] == 'restart'):
+			reply['what'] = 'restarting'
+			wantToExit = True
+			subprocess.Popen('shutdown -r', shell = True)
 		sendJSON(reply)

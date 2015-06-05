@@ -89,10 +89,12 @@ function showBuildersPage() {
 				totalBuilders++;
 				var html =
 					'<div class="builder"><span class="heading"> ' + i + ' ';
-				if (data[i].online) {
+				if (data[i].status == 'online') {
 					onlineBuilders++;
 					html += '<i class="fa fa-check-circle-o"></i>';
-				} else
+				} else if (data[i].status == 'restarting')
+					html += '<i class="fa fa-dot-circle-o" style="color: orange;"></i>';
+				else
 					html += '<i class="fa fa-times-circle-o"></i>';
 				html += '</span>&nbsp;&nbsp;<span>owned by ' +
 						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';

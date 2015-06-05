@@ -49,7 +49,7 @@ app.get('/api/builders', function (request, response) {
 			cores: builderManager.builders[i].cores,
 			architecture: builderManager.builders[i].architecture,
 			flavor: builderManager.builders[i].flavor,
-			online: ('ip' in builderManager.builders[i])
+			status: builderManager.builders[i].status
 		};
 	}
 	response.writeHead(200, {'Content-Type': 'application/json'});

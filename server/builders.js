@@ -41,6 +41,10 @@ module.exports = function () {
 				this.builders[name].flavor = 'unknown';
 			break;
 
+		case 'restarting':
+			this.builders[name].status = 'restarting';
+			break;
+
 		default:
 			log("WARN: couldn't understand this message from '%s': %s", name,
 				JSON.stringify(msg));
@@ -53,9 +57,11 @@ module.exports = function () {
 			sock.write(JSON.stringify(object) + '\n');
 		}
 
+		this.builders[name].status = 'online';
 		this.builders[name].ip = sock.remoteAddress;
 		// fetch builder info
 		sendJSON({what: 'getCores'});
+		sendJSON({what: 'restart'});
 		sendJSON({what: 'command', replyWith: 'uname',
 			command: 'uname -a'});
 		sendJSON({what: 'command', replyWith: 'archlist',
@@ -75,6 +81,10 @@ module.exports = function () {
 		});
 		sock.on('close', function () {
 			log("builder '%s' disconnected", name);
+			if (thisThis.builders[name].status == 'online') {
+				// if the status is 'restarting' we don't want to delete it
+				delete thisThis.builders[name].status;
+			}
 			delete thisThis.builders[name].ip;
 			delete thisThis.builders[name].hrev;
 			delete thisThis.builders[name].cores;
