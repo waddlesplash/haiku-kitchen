@@ -19,30 +19,31 @@ module.exports = function () {
 		{encoding: 'UTF-8'}));
 
 	this._handleMessage = function (name, msg, sendJSON) {
+		var builder = this.builders[name];
 		switch (msg.what) {
 		// information about the builder
 		case 'coreCount':
-			this.builders[name].cores = msg.count;
+			builder.cores = msg.count;
 			break;
 		case 'uname':
 			var uname = msg.output.trim().split(' ');
-			this.builders[name].hrev = uname[3].substr(4);
-			this.builders[name].architecture = uname[10];
+			builder.hrev = uname[3].substr(4);
+			builder.architecture = uname[10];
 			break;
 		case 'archlist':
 			var archlist = msg.output.trim().replace(/\n/g, ' ');
 			if (archlist == 'x86_gcc2 x86')
-				this.builders[name].flavor = 'gcc2hybrid';
+				builder.flavor = 'gcc2hybrid';
 			else if (archlist == 'x86 x86_gcc2')
-				this.builders[name].flavor = 'gcc4hybrid';
-			else if (archlist == this.builders[name].architecture)
-				this.builders[name].flavor = 'pure';
+				builder.flavor = 'gcc4hybrid';
+			else if (archlist == builder.architecture)
+				builder.flavor = 'pure';
 			else
-				this.builders[name].flavor = 'unknown';
+				builder.flavor = 'unknown';
 			break;
 
 		case 'restarting':
-			this.builders[name].status = 'restarting';
+			builder.status = 'restarting';
 			break;
 
 		default:
@@ -61,7 +62,6 @@ module.exports = function () {
 		this.builders[name].ip = sock.remoteAddress;
 		// fetch builder info
 		sendJSON({what: 'getCores'});
-		sendJSON({what: 'restart'});
 		sendJSON({what: 'command', replyWith: 'uname',
 			command: 'uname -a'});
 		sendJSON({what: 'command', replyWith: 'archlist',
