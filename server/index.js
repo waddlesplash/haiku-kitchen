@@ -10,14 +10,18 @@ var log = require('debug')('kitchen:index'), fs = require('fs'),
 	PortsTree = require('./portstree.js'),
 	BuilderManager = require('./builders.js'), timers = require('timers');
 
-var optimist = require('optimist').default({'port': 8080})
-	.describe({
-		'port': 'Port to start the HTTP listener on.',
-		'help': 'Show this helptext.'
-	}).usage('Usage: $0 [options]');
-if (optimist.argv['help']) {
-	optimist.showHelp();
+var argv = require('minimist')(process.argv.slice(2));
+if (argv['help']) {
+	console.log('The Kitchen server.');
+	console.log('Usage: index.js [options]');
+	console.log('');
+	console.log('Options:');
+	console.log('  --port\tPort to start the HTTP listener on.');
+
 	process.exit(0);
+}
+if (!('port' in argv)) {
+	argv.port = 8080;
 }
 
 log("starting up");
@@ -52,4 +56,4 @@ app.get('/api/builders', function (request, response) {
 	response.end(JSON.stringify(respJson));
 });
 app.use(express.static('web'));
-app.listen(optimist.argv['port']);
+app.listen(argv['port']);

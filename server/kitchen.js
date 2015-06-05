@@ -6,10 +6,10 @@
  *		Augustin Cavalier <waddlesplash>
  */
 
-var optimist = require('optimist'), fs = require('fs'),
-	crypto = require('crypto');
+var argv = require('minimist')(process.argv.slice(2)),
+	fs = require('fs'), crypto = require('crypto');
 
-if (optimist.argv['help'] || process.argv.length < 3) {
+if (argv['help'] || process.argv.length < 3) {
 	console.log('Application for managing an installation of Haiku Kitchen.');
 	console.log('Usage: kitchen.js [command] [options]');
 	console.log('');
@@ -32,21 +32,25 @@ else
 
 switch (process.argv[2]) {
 case 'builder:create':
-	var name = optimist.argv['name'];
+	if (!('name' in argv)) {
+		console.error("Builder must have a name.");
+		process.exit(1);
+	}
+	if (!('owner' in argv)) {
+		console.error("Builder must have a named owner.");
+		process.exit(2);
+	}
+	var name = argv['name'];
 	if (name.match(/[^A-Z0-9a-z_-]/)) {
 		console.error('Illegal characters in builder name, valid ones are [A-Z][a-z][0-9]-_.');
-		process.exit(4);
+		process.exit(3);
 	}
 	if (name in builders) {
-		console.error("Builder '" + name + "' already exists!");
-		process.exit(6);
-	}
-	if (!('owner' in optimist.argv)) {
-		console.error("Builder must have a named owner.");
-		process.exit(5);
+		console.error("Builder '%s' already exists!", name);
+		process.exit(4);
 	}
 	var clientConf = {name: name};
-	builders[name] = {owner: optimist.argv['owner']};
+	builders[name] = {owner: argv['owner']};
 
 	// Get some entropy for a key
 	var entropy = "";
@@ -54,7 +58,7 @@ case 'builder:create':
 		entropy += Math.random() * (Math.random() * 10);
 	if (entropy.length < 150) {
 		console.error("FATAL: Didn't get enough entropy for a key!");
-		process.exit(2);
+		process.exit(5);
 	}
 
 	// Create the key as the SHA256 of the data, then create the hash
@@ -67,7 +71,7 @@ case 'builder:create':
 	var salt = entropy.substr(0, 4);
 	if (salt.length < 4) {
 		console.error("FATAL: Didn't get enough entropy for the salt!");
-		process.exit(3);
+		process.exit(6);
 	}
 
 	// Hash the key and the salt
@@ -85,16 +89,16 @@ case 'builder:create':
 case 'builder:destroy':
 	var name = process.argv[3];
 	if (!(name in builders)) {
-		console.error("Builder '" + name + "' does not exist!");
+		console.error("Builder '%s' does not exist!", name);
 		process.exit(7);
 	}
 	delete builders[name];
 	fs.writeFileSync('data/builders.json', JSON.stringify(builders));
-	console.log("Builder '" + name + "' destroyed successfully.");
+	console.log("Builder '%s' destroyed successfully.", name);
 	break;
 
 default:
 	console.error('Invalid command specified!');
-	process.exit(1);
+	process.exit(8);
 	break;
 }
