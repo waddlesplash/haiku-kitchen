@@ -46,6 +46,8 @@ module.exports = function () {
 			builder.status = 'restarting';
 			break;
 
+		case 'ignore':
+			break;
 		default:
 			log("WARN: couldn't understand this message from '%s': %s", name,
 				JSON.stringify(msg));
@@ -60,6 +62,9 @@ module.exports = function () {
 
 		this.builders[name].status = 'online';
 		this.builders[name].ip = sock.remoteAddress;
+		// startup stuff
+		sendJSON({what: 'command', replyWith: 'ignore',
+			command: 'hey Tracker quit'});
 		// fetch builder info
 		sendJSON({what: 'getCores'});
 		sendJSON({what: 'command', replyWith: 'uname',
