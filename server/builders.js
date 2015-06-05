@@ -18,13 +18,35 @@ module.exports = function () {
 	this.builders = JSON.parse(fs.readFileSync('data/builders.json',
 		{encoding: 'UTF-8'}));
 
+	this._handleMessage = function (name, msg, sendJSON) {
+		switch (msg.what) {
+		// information about the builder
+		case 'coreCount':
+			this.builders[name].cores = msg.count;
+			break;
+		case 'uname':
+			var uname = msg.output.trim().split(' ');
+			this.builders[name].hrev = uname[3].substr(4);
+			this.builders[name].architecture = uname[10];
+			break;
+
+		default:
+			log("WARN: couldn't understand this message from '%s': %s", name,
+				JSON.stringify(msg));
+			break;
+		}
+	};
+
 	this._builderAuthenticated = function (sock, name) {
 		function sendJSON(object) {
 			sock.write(JSON.stringify(object) + '\n');
 		}
 
 		this.builders[name].ip = sock.remoteAddress;
-		sendJSON({'what': 'getCores'});
+		// fetch builder info
+		sendJSON({what: 'getCores'});
+		sendJSON({what: 'command', replyWith: 'uname',
+			command: 'uname -a'});
 
 		var thisThis = this, dataBuf = '', data;
 		sock.on('data', function (dat) {
@@ -35,16 +57,7 @@ module.exports = function () {
 
 			for (var i in data) {
 				var msg = JSON.parse(data[i]);
-				switch (msg.what) {
-				case 'coreCount':
-					thisThis.builders[name].cores = msg.count;
-					break;
-
-				default:
-					log("WARN: couldn't understand this message from '%s': %s",
-						name, msg);
-					break;
-				}
+				thisThis._handleMessage(name, msg, sendJSON);
 			}
 		});
 		sock.on('close', function () {
@@ -96,7 +109,7 @@ module.exports = function () {
 				sock.destroy();
 				return;
 			}
-			log("builder '%s' successfully authenticated from IP %s" +
+			log("builder '%s' successfully authenticated from IP %s",
 				msg.name, sock.remoteAddress);
 			sock.removeAllListeners('data');
 			thisThis._builderAuthenticated(sock, msg.name);

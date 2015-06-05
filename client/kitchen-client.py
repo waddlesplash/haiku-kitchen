@@ -44,7 +44,7 @@ while good:
 		reply = {}
 		msg = json.loads(rawMsg)
 		if (msg['what'] == 'command'):
-			reply['what'] = 'commandResult'
+			reply['what'] = msg['replyWith']
 			reply['output'] = ''
 			proc = subprocess.Popen(msg['command'], shell = True,
 									stdout = subprocess.PIPE,
