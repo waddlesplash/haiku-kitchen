@@ -41,14 +41,14 @@ module.exports = function () {
 					break;
 
 				default:
-					log("WARN: couldn't understand this message from '" + name +
-						"': ", msg);
+					log("WARN: couldn't understand this message from '%s': %s",
+						name, msg);
 					break;
 				}
 			}
 		});
 		sock.on('close', function () {
-			log("builder '" + name + "' disconnected");
+			log("builder '%s' disconnected", name);
 			delete thisThis.builders[name].ip;
 			delete thisThis.builders[name].hrev;
 			delete thisThis.builders[name].cores;
@@ -63,7 +63,7 @@ module.exports = function () {
 	};
 	var thisThis = this;
 	require('tls').createServer(options, function (sock) {
-		log('socket opened from ' + sock.remoteAddress);
+		log('socket opened from %s', sock.remoteAddress);
 		var msg = '';
 		sock.on('data', function (data) {
 			msg += data.toString();
@@ -72,14 +72,14 @@ module.exports = function () {
 
 			msg = JSON.parse(msg);
 			if (msg.what != 'auth') {
-				log("AUTHFAIL: " + sock.remoteAddress +
-					"'s first message is not 'auth'!");
+				log("AUTHFAIL: %s's first message is not 'auth'!",
+					sock.remoteAddress);
 				sock.destroy();
 				return;
 			}
 			if (!(msg.name in thisThis.builders)) {
-				log("AUTHFAIL: builder's name is '" + msg.name +
-					"' but no known builders with that name.");
+				log("AUTHFAIL: builder's name is '%s' but no known builders " +
+					"with that name.", msg.name);
 				sock.destroy();
 				return;
 			}
@@ -91,14 +91,13 @@ module.exports = function () {
 			sha256sum.update(msg.key + salt);
 			var hashedKey = sha256sum.digest('base64');
 			if (hashedKey != hash) {
-				log("AUTHFAIL: hash for key of builder '" + msg.name +
-					"' is '" + hashedKey + "', but '" +	hash +
-					"' was expected.");
+				log("AUTHFAIL: hash for key of builder '%s' is '%s', " +
+					"but '%s' was expected.", msg.name, hashedKey, hash);
 				sock.destroy();
 				return;
 			}
-			log("builder '" + msg.name + "' successfully authenticated from IP " +
-				sock.remoteAddress);
+			log("builder '%s' successfully authenticated from IP %s" +
+				msg.name, sock.remoteAddress);
 			sock.removeAllListeners('data');
 			thisThis._builderAuthenticated(sock, msg.name);
 		});

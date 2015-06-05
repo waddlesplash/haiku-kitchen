@@ -39,7 +39,7 @@ module.exports = function () {
 		});
 	};
 	this._updateCacheFor = function (files) {
-		log('updating ' + files.length + ' entries...');
+		log('updating %d entries...', files.length);
 		for (var i in files) {
 			var recipe = new Recipe(files[i]);
 			this.recipes[recipe.name + '-' + recipe.version] = recipe;
@@ -57,11 +57,11 @@ module.exports = function () {
 		shell.rm('-rf', 'cache');
 		shell.mkdir('cache');
 		shell.cd('cache');
-			log('cache: cloning haikuports...');
+			log('cloning haikuports...');
 			var res = shell.exec('git clone --depth=1 https://bitbucket.org/haikuports/haikuports.git',
 				{silent: true});
 			if (res.code !== 0) {
-				log('FATAL: cloning haikuports failed: ' + res.output);
+				log('FATAL: clone failed: %s', res.output);
 				process.exit(3);
 			}
 		shell.cd('..');
@@ -157,7 +157,7 @@ module.exports = function () {
 									filesToUpdate.push('cache/haikuports/' + line[2]);
 								}
 							}
-							log('deleted ' + deletedEntries + ' entries from the cache');
+							log('deleted %d entries from the cache', deleted);
 							thisThis._updateCacheFor(filesToUpdate);
 
 							thisThis._HEAD = shell.exec('git rev-parse HEAD', {silent: true})
