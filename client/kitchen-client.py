@@ -25,6 +25,7 @@ with open (confFilename, 'r') as confFile:
     conf = json.loads(confFile.read().replace('\n', ''))
 sock = socket.socket()
 sock.connect((conf['ip'], 42458))
+sock.settimeout(5)
 
 def sendJSON(obj):
 	"Writes the dictionary object passed to the socket as JSON."
@@ -40,7 +41,11 @@ sendJSON(authMsg)
 dataBuf = ''
 while True:
 	while (not ('\n' in dataBuf)):
-		dataBuf += sock.recv(1024)
+		try:
+			dataBuf += sock.recv(1024)
+		except ssl.SSLError as err:
+			if (err == socket.timeout):
+				pass
 	data = dataBuf.split('\n')
 	dataBuf = data[-1]
 	del data[-1]
