@@ -53,28 +53,22 @@ case 'builder:create':
 	builders[name] = {owner: argv['owner']};
 
 	// Get some entropy for a key
-	var entropy = "";
-	for (var i = 0; i < 10; i++)
-		entropy += Math.random() * (Math.random() * 10);
-	if (entropy.length < 150) {
-		console.error("FATAL: Didn't get enough entropy for a key!");
-		process.exit(5);
+	function getEntropy(len) {
+		try {
+			return crypto.randomBytes(len);
+		} catch (ex) {
+			console.error('FATAL: getting entropy failed: ', ex);
+			process.exit(5);
+		}
 	}
 
 	// Create the key as the SHA256 of the data, then create the hash
 	var sha256sum = crypto.createHash('SHA256');
-	sha256sum.update(entropy);
+	sha256sum.update(getEntropy(150));
 	var key = sha256sum.digest('hex');
 
-	// Get some more entropy for the salt
-	entropy = Math.floor(Math.random() * 10000000).toString(16);
-	var salt = entropy.substr(0, 4);
-	if (salt.length < 4) {
-		console.error("FATAL: Didn't get enough entropy for the salt!");
-		process.exit(6);
-	}
-
 	// Hash the key and the salt
+	var salt = getEntropy(6).toString('base64').substr(0, 4);
 	sha256sum = crypto.createHash('SHA256');
 	sha256sum.update(key + salt);
 	var hash = sha256sum.digest('base64') + salt;
