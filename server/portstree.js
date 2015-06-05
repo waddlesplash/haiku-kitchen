@@ -157,7 +157,7 @@ module.exports = function () {
 									filesToUpdate.push('cache/haikuports/' + line[2]);
 								}
 							}
-							log('deleted %d entries from the cache', deleted);
+							log('deleted %d entries from the cache', deletedEntries);
 							thisThis._updateCacheFor(filesToUpdate);
 
 							thisThis._HEAD = shell.exec('git rev-parse HEAD', {silent: true})
