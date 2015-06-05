@@ -29,6 +29,17 @@ module.exports = function () {
 			this.builders[name].hrev = uname[3].substr(4);
 			this.builders[name].architecture = uname[10];
 			break;
+		case 'archlist':
+			var archlist = msg.output.trim().replace(/\n/g, ' ');
+			if (archlist == 'x86_gcc2 x86')
+				this.builders[name].flavor = 'gcc2hybrid';
+			else if (archlist == 'x86 x86_gcc2')
+				this.builders[name].flavor = 'gcc4hybrid';
+			else if (archlist == this.builders[name].architecture)
+				this.builders[name].flavor = 'pure';
+			else
+				this.builders[name].flavor = 'unknown';
+			break;
 
 		default:
 			log("WARN: couldn't understand this message from '%s': %s", name,
@@ -47,6 +58,8 @@ module.exports = function () {
 		sendJSON({what: 'getCores'});
 		sendJSON({what: 'command', replyWith: 'uname',
 			command: 'uname -a'});
+		sendJSON({what: 'command', replyWith: 'archlist',
+			command: 'setarch -l'});
 
 		var thisThis = this, dataBuf = '', data;
 		sock.on('data', function (dat) {
