@@ -57,8 +57,10 @@ function showRecipesPage(data) {
 					'<td>' + data[i].category + '</td>' +
 					'<td>' + data[i].version + '</td>' +
 					'<td>' + data[i].revision + '</td><td>';
-				if (data[i].lint)
+				if (data[i].lint === true)
 					html += '<i class="fa fa-check-circle"></i>';
+				else if (data[i].lint == '?')
+					html += '<i class="fa fa-question-circle" style="color: orange;"></i>';
 				else
 					html += '<i class="fa fa-times-circle"></i>';
 				html += "</td>";
