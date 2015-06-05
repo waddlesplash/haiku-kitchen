@@ -6,21 +6,25 @@
 # Authors:
 #		Augustin Cavalier <waddlesplash>
 
-import os, atexit, socket, ssl, json, subprocess, multiprocessing
+import os, sys, atexit, socket, ssl, json, subprocess, multiprocessing
 
-if (not os.path.isfile('builder.conf')):
-	raise IOError("Configuration file 'builder.conf' does not exist!")
+confFilename = os.path.dirname(os.path.realpath(__file__)) + '/builder.conf'
+if (not os.path.isfile(confFilename)):
+	raise IOError("Configuration file '" + confFilename + "' does not exist!")
 
 wantToExit = False
+thisFile = __file__
 def exit_handler():
-	if (not wantToExit):
+	if ((not wantToExit) and (sys.last_type != KeyboardInterrupt)):
 		# something happened (probably socket close?) so just restart
 		print "Something happened; restarting process..."
-		os.execv(__file__, sys.argv)
+		os.execv(thisFile, sys.argv)
 atexit.register(exit_handler)
 
+with open (confFilename, 'r') as confFile:
+    conf = json.loads(confFile.read().replace('\n', ''))
 sock = socket.socket()
-sock.connect(("10.0.2.2", 42458))
+sock.connect((conf['ip'], 42458))
 
 def sendJSON(obj):
 	"Writes the dictionary object passed to the socket as JSON."
@@ -29,8 +33,6 @@ def sendJSON(obj):
 sock = ssl.wrap_socket(sock, ssl_version = ssl.PROTOCOL_TLSv1,
 					   cert_reqs = ssl.CERT_NONE)
 
-with open ('builder.conf', 'r') as confFile:
-    conf = json.loads(confFile.read().replace('\n', ''))
 authMsg = {'what': 'auth', 'name': conf['name'], 'key': conf['key']}
 sock.recv(1) # wait until we recieve the first newline
 sendJSON(authMsg)
@@ -49,6 +51,7 @@ while True:
 		if (msg['what'] == 'command'):
 			reply['what'] = msg['replyWith']
 			reply['output'] = ''
+			print "Executing command '" + msg['command'] + "'."
 			proc = subprocess.Popen(msg['command'], shell = True,
 									stdout = subprocess.PIPE,
 									stderr = subprocess.STDOUT)
@@ -60,6 +63,7 @@ while True:
 			reply['count'] = multiprocessing.cpu_count()
 		elif (msg['what'] == 'restart'):
 			reply['what'] = 'restarting'
+			print "Recieved message 'restart', restarting OS..."
 			wantToExit = True
 			subprocess.Popen('shutdown -r', shell = True)
 		sendJSON(reply)

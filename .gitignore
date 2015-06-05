@@ -11,3 +11,4 @@ server/data
 
 # files used by the kitchen client
 builder.conf
+kitchen-client.sh
