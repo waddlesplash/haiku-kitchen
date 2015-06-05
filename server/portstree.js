@@ -65,7 +65,7 @@ module.exports = function () {
 				process.exit(3);
 			}
 		shell.cd('..');
-		_completeCacheRebuild();
+		this._completeCacheRebuild();
 	};
 	this._writeCache = function () {
 		var recipesStr = JSON.stringify(this.recipes);
