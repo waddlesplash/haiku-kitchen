@@ -44,8 +44,10 @@ while True:
 		try:
 			dataBuf += sock.recv(1024)
 		except ssl.SSLError as err:
-			if (err == socket.timeout):
+			if (cmp(err, socket.timeout)):
 				pass
+			else:
+				raise
 	data = dataBuf.split('\n')
 	dataBuf = data[-1]
 	del data[-1]
