@@ -22,7 +22,13 @@ def exit_handler():
 atexit.register(exit_handler)
 
 with open (confFilename, 'r') as confFile:
-    conf = json.loads(confFile.read().replace('\n', ''))
+    try:
+    	conf = json.loads(confFile.read().replace('\n', ''))
+    except ValueError:
+    	wantToExit = True
+    	print "Error: Your conf file is invalid JSON (filename: {0})".format(confFilename) 
+    	sys.exit(1)
+
 sock = socket.socket()
 sock.connect((conf['ip'], 42458))
 sock.settimeout(5)
