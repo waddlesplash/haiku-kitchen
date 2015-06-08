@@ -47,24 +47,28 @@ module.exports = function () {
 		this._updateClientCache();
 		log('recipe metadata update complete.');
 	};
+	this._updateHEAD = function () {
+		this._HEAD = shell.exec('cd cache/haikuports && git rev-parse HEAD', {silent: true})
+				.output.trim();
+	};
 	this._completeCacheRebuild = function () {
 		this.recipes = {};
 		this._updateCacheFor(glob.sync('cache/haikuports/*-*/*/*.recipe'));
+		this._updateHEAD();
+		this._writeCache();
 	};
 
 	this._createCache = function () {
 		log('creating cache from scratch...');
 		shell.rm('-rf', 'cache');
 		shell.mkdir('cache');
-		shell.cd('cache');
-			log('cloning haikuports...');
-			var res = shell.exec('git clone --depth=1 https://bitbucket.org/haikuports/haikuports.git',
-				{silent: true});
-			if (res.code !== 0) {
-				log('FATAL: clone failed: %s', res.output);
-				process.exit(3);
-			}
-		shell.cd('..');
+		log('cloning haikuports...');
+		var res = shell.exec('cd cache && git clone --depth=1 https://bitbucket.org/haikuports/haikuports.git',
+			{silent: true});
+		if (res.code !== 0) {
+			log('FATAL: clone failed: %s', res.output);
+			process.exit(3);
+		}
 		this._completeCacheRebuild();
 	};
 	this._writeCache = function () {
@@ -100,8 +104,6 @@ module.exports = function () {
 			this._createCache();
 		else
 			this._completeCacheRebuild();
-		this._HEAD = shell.exec('git rev-parse HEAD', {silent: true})
-				.output.trim();
 		this._writeCache();
 		log('cache created successfully.');
 	}
@@ -109,64 +111,65 @@ module.exports = function () {
 	this.update = function () {
 		var thisThis = this;
 		log('running git-pull...');
-		shell.cd('cache/haikuports');
-			shell.exec('git pull --ff-only', {silent: true}, function (code, output) {
-				if (code) {
-					log('git-pull failed: ' + output);
-					log('recreating cache...');
-					thisThis._createCache();
-				} else if (output.indexOf('Already up-to-date.') >= 0) {
-					log('git-pull finished, no changes');
-				} else {
-					log('git-pull finished, doing incremental cache update...');
-					shell.cd('cache/haikuports');
-						var cmd = 'git diff ' + thisThis._HEAD + '..HEAD --numstat';
-						shell.exec(cmd, {silent: true}, function (code, output) {
-							output = output.split(/\r*\n/);
-							var filesToUpdate = [], deletedEntries = 0;
-							for (var i in output) {
-								line = output[i].split('\t');
-								if (line.length != 3)
-									continue;
-								// 0 is additions, 1 is deletions, 2 is filename
-								if (!/\.recipe$/.test(line[2]))
-									continue;
-								if (line[1] == 0) {
-									// only additions, just add the file to the list
-									filesToUpdate.push('cache/haikuports/' + line[2]);
-									continue;
-								}
-								// There are some deletions in this file, so
-								// make sure it exists.
-								if (!fs.existsSync('cache/haikuports/' + line[2])) {
-									// doesn't exist, attempt to delete it from cache
-									var splitPath = line[2].split('/');
-									var name = splitPath[splitPath.length - 1].replace('.recipe', '');
-									if (name in thisThis.recipes) {
-										delete thisThis.recipes[name];
-										deletedEntries++;
-									} else {
-										// that file doesn't exist in the cache
-										log('incremental cache update failed, ' +
-											'doing full cache update instead');
-										thisThis._createCache();
-										return;
-									}
-								} else {
-									// still exists, we're good
-									filesToUpdate.push('cache/haikuports/' + line[2]);
-								}
+		shell.exec('cd cache/haikuports && git pull --ff-only', {silent: true}, function (code, output) {
+			if (code) {
+				log('git-pull failed: ' + output);
+				log('recreating cache...');
+				thisThis._createCache();
+			} else if (output.indexOf('Already up-to-date.') >= 0) {
+				log('git-pull finished, no changes');
+			} else {
+				log('git-pull finished, doing incremental cache update...');
+				var cmd = 'cd cache/haikuports && git diff ' + thisThis._HEAD + '..HEAD --numstat';
+				shell.exec(cmd, {silent: true}, function (code, output) {
+					if (code != 0) {
+						log("git-diff did not exit with 0: '%s', performing " +
+							'complete cache rebuild', output.trim());
+						thisThis._completeCacheRebuild();
+						return;
+					}
+					output = output.split(/\r*\n/);
+					var filesToUpdate = [], deletedEntries = 0;
+					for (var i in output) {
+						line = output[i].split('\t');
+						if (line.length != 3)
+							continue;
+						// 0 is additions, 1 is deletions, 2 is filename
+						if (!/\.recipe$/.test(line[2]))
+							continue;
+						if (line[1] == 0) {
+							// only additions, just add the file to the list
+							filesToUpdate.push('cache/haikuports/' + line[2]);
+							continue;
+						}
+						// There are some deletions in this file, so
+						// make sure it exists.
+						if (!fs.existsSync('cache/haikuports/' + line[2])) {
+							// doesn't exist, attempt to delete it from cache
+							var splitPath = line[2].split('/');
+							var name = splitPath[splitPath.length - 1].replace('.recipe', '');
+							if (name in thisThis.recipes) {
+								delete thisThis.recipes[name];
+								deletedEntries++;
+							} else {
+								// that file doesn't exist in the cache
+								log('incremental cache update failed, ' +
+									'doing full cache update instead');
+								thisThis._completeCacheRebuild();
+								return;
 							}
-							log('deleted %d entries from the cache', deletedEntries);
-							thisThis._updateCacheFor(filesToUpdate);
+						} else {
+							// still exists, we're good
+							filesToUpdate.push('cache/haikuports/' + line[2]);
+						}
+					}
+					log('deleted %d entries from the cache', deletedEntries);
+					thisThis._updateCacheFor(filesToUpdate);
 
-							thisThis._HEAD = shell.exec('git rev-parse HEAD', {silent: true})
-								.output.trim();
-							thisThis._writeCache();
-						});
-					shell.cd('../..');
-				}
-			});
-		shell.cd('../..');
+					thisThis._updateHEAD();
+					thisThis._writeCache();
+				});
+			}
+		});
 	};
 };
