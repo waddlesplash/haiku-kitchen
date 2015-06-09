@@ -18,7 +18,37 @@ module.exports = function () {
 	this.builders = JSON.parse(fs.readFileSync('data/builders.json',
 		{encoding: 'UTF-8'}));
 
+	this._builderSockets = {};
+	this._runningCommands = {};
+	this._nextCommandId = 0;
+	this.runCommandOn = function (builder, command, callback) {
+		if (!(builder in this.builders)) {
+			throw 'Builder does not exist!';
+		}
+		var cmdId = 'cmd' + this._nextCommandId;
+		this._nextCommandId++;
+		this._runningCommands[cmdId] = {
+			callback: callback
+		};
+		this._builderSockets[builder].write(JSON.stringify({what: 'command',
+			replyWith: cmdId, command: command}) + '\n');
+	};
+
+	this.onBuilderConnected = function (callback) {
+		this._builderConnectedCallback = callback;
+	};
 	this._handleMessage = function (name, msg, sendJSON) {
+		if (msg.what.indexOf('cmd') == 0) {
+			if (!(msg.what in this._runningCommands)) {
+				log('WARN: message returned for pending command that does ' +
+					'not exist: builder %s, result: %s', name, JSON.stringify(msg));
+			} else {
+				this._runningCommands[msg.what].callback(msg.exitcode, msg.output);
+				delete this._runningCommands[msg.what];
+			}
+			return;
+		}
+
 		var builder = this.builders[name];
 		switch (msg.what) {
 		// information about the builder
@@ -40,6 +70,11 @@ module.exports = function () {
 				builder.flavor = 'pure';
 			else
 				builder.flavor = 'unknown';
+			// Now that we have both the uname and the archlist of the builder,
+			// call the 'builder connected' callback
+			if (this._builderConnectedCallback != undefined) {
+				this._builderConnectedCallback(name);
+			}
 			break;
 
 		case 'restarting':
@@ -61,10 +96,12 @@ module.exports = function () {
 		}
 
 		this.builders[name].status = 'online';
-		this.builders[name].ip = sock.remoteAddress;
+		this._builderSockets[name] = sock;
 		// startup stuff
 		sendJSON({what: 'command', replyWith: 'ignore',
 			command: 'hey Tracker quit'});
+		sendJSON({what: 'command', replyWith: 'ignore',
+			command: 'cd ~'});
 		// fetch builder info
 		sendJSON({what: 'getCores'});
 		sendJSON({what: 'command', replyWith: 'uname',
@@ -90,7 +127,7 @@ module.exports = function () {
 				// if the status is 'restarting' we don't want to delete it
 				delete thisThis.builders[name].status;
 			}
-			delete thisThis.builders[name].ip;
+			delete thisThis._builderSockets[name];
 			delete thisThis.builders[name].hrev;
 			delete thisThis.builders[name].cores;
 			delete thisThis.builders[name].architecture;

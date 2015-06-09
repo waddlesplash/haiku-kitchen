@@ -2,7 +2,6 @@ body {
 	margin: 0;
 	padding: 0;
 	background: #DBC088;
-	line-height: 1.75em;
 	font-family: 'Source Sans Pro', sans-serif;
 	font-size: 12pt;
 	font-weight: 350;
@@ -85,6 +84,7 @@ a:hover {
 	float: left;
 	text-align: center;
 	margin-left: 5px;
+	margin-top: 7px;
 }
 
 #menu li a, #menu li span {
@@ -138,6 +138,9 @@ i.fa.fa-check-circle, i.fa.fa-check-circle-o {
 }
 i.fa.fa-times-circle, i.fa.fa-times-circle-o {
 	color: red;
+}
+i.fa.fa-question-circle {
+	color: orange;
 }
 
 /*********************************************************************************/
@@ -196,4 +199,32 @@ div.builder {
 div.builder .heading {
 	font-weight: bold;
 	font-size: 150%;
+}
+
+/*********************************************************************************/
+/* Builds                                                                        */
+/*********************************************************************************/
+#buildStatus {
+	padding: 2px 3px;
+}
+#buildSteps {
+	font-size: 14px;
+}
+#buildSteps li {
+	max-width: 630px;
+	margin: 3px 0px;
+	padding: 0px 3px;
+}
+
+.status-pending {
+	background-color: #ccc !important;
+}
+.status-active {
+	background-color: yellow !important;
+}
+.status-completed {
+	background-color: #8d4 !important;
+}
+.status-failed {
+	background-color: #e88 !important;
 }

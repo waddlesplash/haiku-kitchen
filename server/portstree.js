@@ -25,12 +25,13 @@ module.exports = function () {
 	this._updateClientCache = function () {
 		var newClientRecipes = [];
 		for (var i in this.recipes) {
+			var recipe = this.recipes[i];
 			newClientRecipes.push({
-				name: this.recipes[i].name,
-				category: this.recipes[i].category,
-				version: this.recipes[i].version,
-				revision: this.recipes[i].revision,
-				lint: '?'
+				name: recipe.name,
+				category: recipe.category,
+				version: recipe.version,
+				revision: recipe.revision,
+				lint: recipe.lint
 			});
 		}
 		var thisThis = this;

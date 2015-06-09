@@ -7,6 +7,14 @@
  */
 
 var kArchitecture = ['x86', 'x86_64', 'x86_gcc2', 'arm', 'ppc'];
+function getFriendlyNameForStatus(status) {
+	if (status == 'pending')
+		return 'queued';
+	else if (status == 'running')
+		return 'started';
+	else
+		return status;
+}
 
 /*! toggles the contents and spinner areas */
 function hideContents() {
@@ -44,13 +52,11 @@ function showHomePage(data) {
 	showContents();
 }
 
-function showRecipesPage(data) {
-	setPageTitle('Recipes', 'This is a complete listing of recipes known to the Haiku package build system:');
-	$('#pageContentsBody').html(data);
-
-	/* fetch recipe stats and add them to the table */
+function showRecipesPage(pageData) {
 	$.ajax('/api/recipes')
 		.done(function (data) {
+			$('#pageContentsBody').html(pageData);
+
 			for (var i in data) {
 				var html =
 					'<tr><td><i class="fa fa-file-text-o"></i> ' + data[i].name + '</td>' +
@@ -59,10 +65,10 @@ function showRecipesPage(data) {
 					'<td>' + data[i].revision + '</td><td>';
 				if (data[i].lint === true)
 					html += '<i class="fa fa-check-circle"></i>';
-				else if (data[i].lint == '?')
-					html += '<i class="fa fa-question-circle" style="color: orange;"></i>';
-				else
+				else if (data[i].lint === false)
 					html += '<i class="fa fa-times-circle"></i>';
+				else
+					html += '<i class="fa fa-question-circle"></i>';
 				html += "</td>";
 				for (var a in kArchitecture) {
 					var arch = kArchitecture[a];
@@ -76,14 +82,15 @@ function showRecipesPage(data) {
 				$("#recipesTableBody").append(html);
 			}
 			$("table.sortable").stupidtable();
+
+			setPageTitle('Recipes', 'This is a complete listing of recipes known ' +
+				'to the Haiku package build system:');
 			showContents();
 		})
 		.fail(pageLoadingFailed);
 }
 
 function showBuildersPage() {
-	setPageTitle('Builders', '');
-
 	$.ajax('/api/builders')
 		.done(function (data) {
 			var onlineBuilders = 0, totalBuilders = 0;
@@ -115,6 +122,58 @@ function showBuildersPage() {
 		.fail(pageLoadingFailed);
 }
 
+function showBuildsPage() {
+	$.ajax('/api/builds')
+		.done(function (data) {
+			$("#pageContentsBody").html('<table id="buildsTable"></table>');
+			for (var i in data) {
+				var row = '<tr class="status-' + data[i].status + '">';
+				row += '<td><a href="#/build/' + data[i].id + '">#' +
+					data[i].id + '</a></td>';
+				row += '<td>' + data[i].description + '</td>';
+				row += '<td>' + getFriendlyNameForStatus(data[i].status) +
+					' ' + $.timeago(data[i].lastTime) + '</td>';
+				row += '<td>' + data[i].steps + ' steps</td>';
+				row += '</tr>';
+				$("#buildsTable").append(row);
+			}
+			setPageTitle('Builds', '');
+			showContents();
+		})
+		.fail(pageLoadingFailed);
+}
+
+function showBuildPage(pageData) {
+	$.ajax('/api/build/' + /[^/]*$/.exec(window.location.hash)[0])
+		.done(function (data) {
+			$('#pageContentsBody').html(pageData);
+
+			$("#statusName").html(getFriendlyNameForStatus(data.status));
+			$("#buildStatus").addClass('status-' + data.status);
+			$("#lastTime").html($.timeago(data.lastTime));
+
+			for (var i in data.steps) {
+				var status;
+				if (data.status == 'completed' || data.curStep > i)
+					status = 'completed';
+				else if (data.curStep == i) {
+					if (data.status == 'failed')
+						status = 'failed';
+					else
+						status = 'active';
+				} else
+					status = 'pending';
+				var item = '<li class="status-' + status + '">';
+				item += data.steps[i] + '</li>';
+				$("#buildSteps").append(item);
+			}
+
+			setPageTitle('Build #' + data.id, data.description);
+			showContents();
+		})
+		.fail(pageLoadingFailed);
+}
+
 var currentHash = '';
 function navigate(force) {
 	if (currentHash == window.location.hash && !force)
@@ -123,6 +182,12 @@ function navigate(force) {
 	hideContents();
 	$('#menu li').removeClass('active');
 	$('#pageContentsBody').html('');
+	setPageTitle('Loading…', '');
+
+	if (window.location.hash.indexOf("#/build/") == 0) {
+		fetchPageAndCall('pages/build.html', showBuildPage);
+		return;
+	}
 	switch (window.location.hash) {
 	case '':
 	case '#/':
@@ -135,6 +200,10 @@ function navigate(force) {
 	case '#/builders':
 		$('#menu li.builders').addClass('active');
 		showBuildersPage();
+		break;
+	case '#/builds':
+		$('#menu li.builds').addClass('active');
+		showBuildsPage();
 		break;
 
 	default:
@@ -149,5 +218,6 @@ $(window).on('hashchange', function() {
 	navigate();
 });
 $(function () {
+	$.timeago.settings.allowFuture = true;
 	navigate(true);
 });
