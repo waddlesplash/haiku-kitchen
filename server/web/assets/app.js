@@ -186,6 +186,7 @@ function navigate(force) {
 
 	if (window.location.hash.indexOf("#/build/") == 0) {
 		fetchPageAndCall('pages/build.html', showBuildPage);
+		currentHash = window.location.hash;
 		return;
 	}
 	switch (window.location.hash) {
