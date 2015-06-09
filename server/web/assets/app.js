@@ -64,11 +64,11 @@ function showRecipesPage(pageData) {
 					'<td>' + data[i].version + '</td>' +
 					'<td>' + data[i].revision + '</td><td>';
 				if (data[i].lint === true)
-					html += '<i class="fa fa-check-circle"></i>';
+					html += '<i class="fa fa-check-circle"></i><span>true</span>';
 				else if (data[i].lint === false)
-					html += '<i class="fa fa-times-circle"></i>';
+					html += '<i class="fa fa-times-circle"></i><span>false</span>';
 				else
-					html += '<i class="fa fa-question-circle"></i>';
+					html += '<i class="fa fa-question-circle"></i><span>?</span>';
 				html += "</td>";
 				for (var a in kArchitecture) {
 					var arch = kArchitecture[a];
@@ -160,7 +160,7 @@ function showBuildPage(pageData) {
 					if (data.status == 'failed')
 						status = 'failed';
 					else
-						status = 'active';
+						status = 'running';
 				} else
 					status = 'pending';
 				var item = '<li class="status-' + status + '">';

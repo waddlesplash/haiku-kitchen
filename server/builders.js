@@ -18,6 +18,64 @@ module.exports = function () {
 	this.builders = JSON.parse(fs.readFileSync('data/builders.json',
 		{encoding: 'UTF-8'}));
 
+	this._updateHaikuportsTreeOn = function (builder, callback) {
+		log('updating haikuporter/haikuports trees on %s', builder);
+		var cmd = 'cd ~/haikuporter && git pull && cd ~/haikuports && git pull && cd ~';
+		this.runCommandOn(builder, cmd, function (exitcode, output) {
+			if (exitcode == 0) {
+				if (callback != undefined)
+					callback();
+			} else
+				log('git-pull on builder %s failed: %s', builder, output.trim());
+		});
+	};
+	this._ensureHaikuportsTreeOn = function (builder) {
+		var thisThis = this;
+		function treeIsReady() {
+			log('haikuporter/haikuports clone/pull successful on %s', builder);
+			thisThis.runCommandOn(builder, 'haikuporter', function (exitcode, output) {
+				// Now that we've ensured there's an up-to-date HaikuPorts tree,
+				// we can fire the 'builder connected' signal.
+				if (thisThis._builderConnectedCallback != undefined) {
+					thisThis._builderConnectedCallback(builder);
+				}
+			});
+		}
+
+		var cmd = 'ls ~/haikuporter/ && ls ~/haikuports/';
+		this.runCommandOn(builder, cmd, function (exitcode, output) {
+			if (exitcode == 0) {
+				// they're already there, just update them
+				thisThis._updateHaikuportsTreeOn(builder, treeIsReady);
+				return;
+			}
+			// didn't exit with 0, probably means there's no haikuports/haikuporter
+			log('cloning new haikuporter/haikuports trees on %s', builder);
+			cmd = 'cd ~ && git clone https://bitbucket.org/haikuports/haikuporter.git ' +
+				'--depth=1 && git clone https://bitbucket.org/haikuports/haikuports.git --depth=1';
+			thisThis.runCommandOn(builder, cmd, function (exitcode, output) {
+				if (exitcode == 0)
+					treeIsReady();
+				else
+					log('git-clone on builder %s failed: %s', builder, output.trim());
+			});
+
+			var confFile = '~/config/settings/haikuports.conf';
+			cmd = [
+				'TREE_PATH=\\"/boot/home/haikuports\\"',
+				'PACKAGER=\\"Haiku Kitchen \\<kitchen@server.fake\\>\\"'
+				];
+			cmd = cmd.join(' >>' + confFile + ' && echo ');
+			cmd = 'rm -f ' + confFile + ' && echo ' + cmd + ' >>' + confFile;
+			thisThis.runCommandOn(builder, cmd, function (exitcode, output) {
+				if (exitcode != 0)
+					log('attempt to create haikuports.conf on %s failed: %s',
+						builder, output.trim());
+			});
+		});
+		this.runCommandOn(builder, 'ln -s ~/haikuporter/haikuporter haikuporter');
+	};
+
 	this._builderSockets = {};
 	this._runningCommands = {};
 	this._nextCommandId = 0;
@@ -43,7 +101,9 @@ module.exports = function () {
 				log('WARN: message returned for pending command that does ' +
 					'not exist: builder %s, result: %s', name, JSON.stringify(msg));
 			} else {
-				this._runningCommands[msg.what].callback(msg.exitcode, msg.output);
+				var callback = this._runningCommands[msg.what].callback;
+				if (callback !== undefined)
+					callback(msg.exitcode, msg.output);
 				delete this._runningCommands[msg.what];
 			}
 			return;
@@ -70,11 +130,6 @@ module.exports = function () {
 				builder.flavor = 'pure';
 			else
 				builder.flavor = 'unknown';
-			// Now that we have both the uname and the archlist of the builder,
-			// call the 'builder connected' callback
-			if (this._builderConnectedCallback != undefined) {
-				this._builderConnectedCallback(name);
-			}
 			break;
 
 		case 'restarting':
@@ -100,14 +155,13 @@ module.exports = function () {
 		// startup stuff
 		sendJSON({what: 'command', replyWith: 'ignore',
 			command: 'hey Tracker quit'});
-		sendJSON({what: 'command', replyWith: 'ignore',
-			command: 'cd ~'});
 		// fetch builder info
 		sendJSON({what: 'getCores'});
 		sendJSON({what: 'command', replyWith: 'uname',
 			command: 'uname -a'});
 		sendJSON({what: 'command', replyWith: 'archlist',
 			command: 'setarch -l'});
+		this._ensureHaikuportsTreeOn(name);
 
 		var thisThis = this, dataBuf = '', data;
 		sock.on('data', function (dat) {

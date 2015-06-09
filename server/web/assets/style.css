@@ -166,6 +166,9 @@ table thead tr {
 	text-align: left;
 	background-color: #cccccc !important;
 }
+table tr span {
+	display: none;
+}
 
 table.sortable thead tr th {
 	cursor: pointer;
@@ -219,7 +222,7 @@ div.builder .heading {
 .status-pending {
 	background-color: #ccc !important;
 }
-.status-active {
+.status-running {
 	background-color: yellow !important;
 }
 .status-completed {

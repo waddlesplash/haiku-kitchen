@@ -45,9 +45,9 @@ function runJobOn(builder, job) {
 	job.curStep = 0;
 	function commandFinished(exitcode, output) {
 		// TODO: add output to log
-		if (exitcode != 0) {
-			jobFinished(job);
+		if (!job.handleResult(job.steps[job.curStep], exitcode, output)) {
 			job.failed = true;
+			jobFinished(job);
 			log('job #%d failed on step %d', job.id, job.curStep);
 			return;
 		}
@@ -55,6 +55,8 @@ function runJobOn(builder, job) {
 		job.curStep++;
 		if (job.curStep == job.steps.length) {
 			jobFinished(job);
+			if (job.onSuccess != undefined)
+				job.onSuccess();
 			delete job.curStep;
 			log('job #%d succeeded!', job.id);
 			return;
@@ -88,11 +90,19 @@ if (recipesToLint.length > 0) {
 		noDependencyTracking: true,
 		architecture: 'any',
 		lastTime: new Date(),
-		steps: []
+		steps: [],
+		handleResult: function (step, exitcode, output) {
+			portsTree.recipes[step.split(' ')[2]].lint = (exitcode == 0);
+			return true;
+		},
+		onSuccess: function () {
+			portsTree._updateClientCache();
+			portsTree._writeCache();
+		}
 	};
 	nextBuildId++;
 	for (var i in recipesToLint) {
-		build.steps.push('haikuporter lint ' + recipesToLint[i]);
+		build.steps.push('haikuporter --lint ' + recipesToLint[i]);
 	}
 	pendingBuilds[build.id] = build;
 	log('created lint-new-recipes build (#%d)', build.id);
@@ -147,7 +157,7 @@ app.get('/api/build/*', function (request, response) {
 		status = 'pending';
 	} else if (build in activeBuilds) {
 		buildObj = activeBuilds[build];
-		status = 'active';
+		status = 'running';
 	} else if (build in finishedBuilds) {
 		buildObj = finishedBuilds[build];
 		status = buildObj.failed ? 'failed' : 'completed';
