@@ -27,13 +27,13 @@ if (!('port' in argv)) {
 log("starting up");
 
 /*! --------------------- haikuports tree --------------------- */
-var portsTree = new PortsTree();
+var portsTree = global.portsTree = new PortsTree();
 portsTree.update();
 timers.setInterval(portsTree.update, 10 * 60 * 1000);
 
 /*! --------------------- builds/builders --------------------- */
-var builderManager = new BuilderManager();
-var buildManager = new BuildManager(builderManager);
+var builderManager = global.builderManager = new BuilderManager(),
+	buildManager = global.buildManager = new BuildManager(builderManager);
 
 // find recipes that need to be linted & create a build if there are some
 function createJobToLintRecipes(recipes) {
@@ -71,7 +71,7 @@ portsTree.onRecipesChanged(function (recipes) {
 });
 
 /*! ------------------------ webserver ------------------------ */
-var express = require('express'), app = express();
+var express = require('express'), app = global.app = express();
 app.get('/api/recipes', function (request, response) {
 	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
 	response.end(portsTree.clientRecipes);
