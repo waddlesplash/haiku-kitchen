@@ -145,7 +145,12 @@ function showBuildsPage() {
 
 function buildOutput(e) {
 	e.preventDefault();
-	$(e.target.parentNode).toggleClass('outputVisible');
+	var li = $(e.target.parentNode);
+	li.toggleClass('outputVisible');
+	if (li.hasClass('outputVisible'))
+		$(e.target).html('hide');
+	else
+		$(e.target).html('output');
 }
 function showBuildPage(pageData) {
 	$.ajax('/api/build/' + /[^/]*$/.exec(window.location.hash)[0])
