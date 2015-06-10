@@ -8,7 +8,8 @@
 
 var log = require('debug')('kitchen:index'), fs = require('fs'),
 	PortsTree = require('./portstree.js'), BuildManager = require('./builds.js'),
-	BuilderManager = require('./builders.js'), timers = require('timers');
+	BuilderManager = require('./builders.js'), timers = require('timers'),
+	zlib = require('zlib');
 
 var argv = require('minimist')(process.argv.slice(2));
 if (argv['help']) {
@@ -112,8 +113,10 @@ app.get('/api/build/*', function (request, response) {
 		steps: build.steps,
 		curStep: build.curStep
 	};
-	response.writeHead(200, {'Content-Type': 'application/json'});
-	response.end(JSON.stringify(respJson));
+	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
+	zlib.gzip(JSON.stringify(respJson), function (err, res) {
+		response.end(res);
+	});
 });
 app.use(express.static('web'));
 app.listen(argv['port']);

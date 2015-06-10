@@ -143,6 +143,10 @@ function showBuildsPage() {
 		.fail(pageLoadingFailed);
 }
 
+function buildOutput(e) {
+	e.preventDefault();
+	$(e.target.parentNode).toggleClass('outputVisible');
+}
 function showBuildPage(pageData) {
 	$.ajax('/api/build/' + /[^/]*$/.exec(window.location.hash)[0])
 		.done(function (data) {
@@ -153,10 +157,12 @@ function showBuildPage(pageData) {
 			$("#lastTime").html($.timeago(data.lastTime));
 
 			for (var i in data.steps) {
-				var status;
-				if (data.status == 'succeeded' || data.curStep > i)
+				var status, step = data.steps[i];
+				var didThisStep = false;
+				if (data.status == 'succeeded' || data.curStep > i) {
 					status = 'succeeded';
-				else if (data.curStep == i) {
+					didThisStep = true;
+				} else if (data.curStep == i) {
 					if (data.status == 'failed')
 						status = 'failed';
 					else
@@ -164,7 +170,19 @@ function showBuildPage(pageData) {
 				} else
 					status = 'pending';
 				var item = '<li class="status-' + status + '">';
-				item += data.steps[i] + '</li>';
+				item += step.command;
+				if (didThisStep) {
+					item += '<a href="#" onclick="buildOutput(event);">output</a>';
+					item += '<div class="textarea">' +
+						step.output
+							.replace(/&/g, '&amp;')
+							.replace(/</g, '&lt;')
+							.replace(/>/g, '&gt;')
+							.replace(/\r*\n/g, '<br>') +
+						'<br><span>Command exited with code ' + step.exitcode + '.</span>' +
+						'</div>';
+				}
+				item += '</li>';
 				$("#buildSteps").append(item);
 			}
 

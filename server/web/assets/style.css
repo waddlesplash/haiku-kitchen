@@ -216,7 +216,27 @@ div.builder .heading {
 #buildSteps li {
 	max-width: 630px;
 	margin: 3px 0px;
-	padding: 0px 3px;
+	padding: 1px 3px;
+}
+#buildSteps li a {
+	float: right;
+}
+
+#buildSteps li div.textarea {
+	font-family: 'Source Code Pro', monospace;
+	overflow-y: scroll;
+	white-space: nowrap;
+	resize: vertical;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(0, 0, 0, 0.5);
+	margin: 4px 2px;
+	max-height: 200px;
+}
+#buildSteps li:not(.outputVisible) div.textarea {
+	display: none;
+}
+#buildSteps li div.textarea span {
+	color: #00A;
 }
 
 .status-pending {
