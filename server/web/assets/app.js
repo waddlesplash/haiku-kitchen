@@ -210,7 +210,8 @@ function navigate(force) {
 	default:
 		setPageTitle('404 Not Found', 'We can’t find that page! <i class="fa fa-frown-o"></i>');
 		showContents();
-		break;
+		currentHash = '';
+		return;
 	}
 	currentHash = window.location.hash;
 }
