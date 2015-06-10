@@ -97,11 +97,6 @@ module.exports = function (builderManager) {
 		this._writeBuilds();
 
 		build.status = 'pending';
-		var newSteps = [];
-		for (var i in build.steps) {
-			newSteps.push({command: build.steps[i]});
-		}
-		build.steps = newSteps;
 		builds[build.id] = build;
 		log("build #%d ('%s') created", build.id, build.description);
 		this._tryRunBuilds();

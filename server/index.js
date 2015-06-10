@@ -54,7 +54,7 @@ function createJobToLintRecipes(recipes) {
 		}
 	};
 	for (var i in recipes) {
-		build.steps.push('haikuporter --lint ' + recipes[i]);
+		build.steps.push({command: 'haikuporter --lint ' + recipes[i]});
 	}
 	buildManager.addBuild(build);
 }
