@@ -154,8 +154,8 @@ function showBuildPage(pageData) {
 
 			for (var i in data.steps) {
 				var status;
-				if (data.status == 'completed' || data.curStep > i)
-					status = 'completed';
+				if (data.status == 'succeeded' || data.curStep > i)
+					status = 'succeeded';
 				else if (data.curStep == i) {
 					if (data.status == 'failed')
 						status = 'failed';

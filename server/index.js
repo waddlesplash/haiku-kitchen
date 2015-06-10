@@ -7,7 +7,7 @@
  */
 
 var log = require('debug')('kitchen:index'), fs = require('fs'),
-	PortsTree = require('./portstree.js'),
+	PortsTree = require('./portstree.js'), BuildManager = require('./builds.js'),
 	BuilderManager = require('./builders.js'), timers = require('timers');
 
 var argv = require('minimist')(process.argv.slice(2));
@@ -33,54 +33,11 @@ timers.setInterval(portsTree.update, 10 * 60 * 1000);
 
 /*! --------------------- builds/builders --------------------- */
 var builderManager = new BuilderManager();
-var pendingBuilds = {}, activeBuilds = {}, finishedBuilds = {}, nextBuildId = 1;
-
-function jobFinished(job) {
-	finishedBuilds[job.id] = job;
-	delete activeBuilds[job.id];
-	job.lastTime = new Date();
-}
-function runJobOn(builder, job) {
-	log('starting job #%d...', job.id);
-	job.curStep = 0;
-	function commandFinished(exitcode, output) {
-		// TODO: add output to log
-		if (!job.handleResult(job.steps[job.curStep], exitcode, output)) {
-			job.failed = true;
-			jobFinished(job);
-			log('job #%d failed on step %d', job.id, job.curStep);
-			return;
-		}
-
-		job.curStep++;
-		if (job.curStep == job.steps.length) {
-			jobFinished(job);
-			if (job.onSuccess != undefined)
-				job.onSuccess();
-			delete job.curStep;
-			log('job #%d succeeded!', job.id);
-			return;
-		}
-		builderManager.runCommandOn(builder, job.steps[job.curStep], commandFinished);
-	}
-	builderManager.runCommandOn(builder, job.steps[job.curStep], commandFinished);
-}
-
-builderManager.onBuilderConnected(function (name) {
-	for (var i in pendingBuilds) {
-		if (pendingBuilds[i].architecture == 'any') {
-			activeBuilds[i] = pendingBuilds[i];
-			delete pendingBuilds[i];
-			activeBuilds[i].lastTime = new Date();
-			runJobOn(name, activeBuilds[i]);
-		}
-	}
-});
+var buildManager = new BuildManager(builderManager);
 
 // find recipes that need to be linted & create a build if there are some
 function createJobToLintRecipes(recipes) {
 	var build = {
-		id: nextBuildId,
 		description: 'lint unlinted recipes',
 		noDependencyTracking: true,
 		architecture: 'any',
@@ -95,12 +52,10 @@ function createJobToLintRecipes(recipes) {
 			portsTree._writeCache();
 		}
 	};
-	nextBuildId++;
 	for (var i in recipes) {
 		build.steps.push('haikuporter --lint ' + recipes[i]);
 	}
-	pendingBuilds[build.id] = build;
-	log('created lint-new-recipes build (#%d)', build.id);
+	buildManager.addBuild(build);
 }
 var recipesToLint = [];
 for (var i in portsTree.recipes) {
@@ -139,48 +94,23 @@ app.get('/api/builders', function (request, response) {
 });
 app.get('/api/builds', function (request, response) {
 	response.writeHead(200, {'Content-Type': 'application/json'});
-	var respJson = {};
-	function addBuild(build, status) {
-		respJson[build] = {
-			id: build.id,
-			status: status,
-			description: build.description,
-			lastTime: build.lastTime,
-			steps: build.steps.length
-		};
-	}
-	for (var i in pendingBuilds)
-		addBuild(pendingBuilds[i], 'pending');
-	for (var i in activeBuilds)
-		addBuild(activeBuilds[i], 'running');
-	for (var i in finishedBuilds)
-		addBuild(finishedBuilds[i], finishedBuilds[i].failed ? 'failed' : 'completed');
-	response.end(JSON.stringify(respJson));
+	response.end(JSON.stringify(buildManager.buildsSummary()));
 });
 app.get('/api/build/*', function (request, response) {
-	var build = /[^/]*$/.exec(request.url)[0], buildObj, status;
-	if (build in pendingBuilds) {
-		buildObj = pendingBuilds[build];
-		status = 'pending';
-	} else if (build in activeBuilds) {
-		buildObj = activeBuilds[build];
-		status = 'running';
-	} else if (build in finishedBuilds) {
-		buildObj = finishedBuilds[build];
-		status = buildObj.failed ? 'failed' : 'completed';
-	} else {
+	var b = /[^/]*$/.exec(request.url)[0], build = buildManager.builds()[b];
+	if (build == undefined) {
 		response.writeHead(404, {'Content-Type': 'text/plain'});
 		response.end('404 File Not Found');
 		return;
 	}
 
 	var respJson = {
-		id: build,
-		status: status,
-		description: buildObj.description,
-		lastTime: buildObj.lastTime,
-		steps: buildObj.steps,
-		curStep: buildObj.curStep
+		id: build.id,
+		status: build.status,
+		description: build.description,
+		lastTime: build.lastTime,
+		steps: build.steps,
+		curStep: build.curStep
 	};
 	response.writeHead(200, {'Content-Type': 'application/json'});
 	response.end(JSON.stringify(respJson));

@@ -225,7 +225,7 @@ div.builder .heading {
 .status-running {
 	background-color: yellow !important;
 }
-.status-completed {
+.status-succeeded {
 	background-color: #8d4 !important;
 }
 .status-failed {
