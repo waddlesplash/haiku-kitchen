@@ -21,6 +21,7 @@ module.exports = function () {
 	// Having these functions be inline instead of in a prototype consumes more
 	// RAM, but since there should only be one instance of this object anyway
 	// it shouldn't be an issue.
+	var thisThis = this;
 
 	this._updateClientCache = function () {
 		var newClientRecipes = [];
@@ -40,7 +41,6 @@ module.exports = function () {
 			else
 				return (a.category > b.category) - (a.category < b.category);
 		});
-		var thisThis = this;
 		zlib.gzip(JSON.stringify(newClientRecipes), {level: 9}, function (err, res) {
 			thisThis.clientRecipes = res;
 		});
@@ -119,7 +119,6 @@ module.exports = function () {
 		this._recipesChangedCallback = callback;
 	};
 	this.update = function () {
-		var thisThis = this;
 		log('running git-pull...');
 		shell.exec('cd cache/haikuports && git pull --ff-only', {silent: true}, function (code, output) {
 			if (code) {
