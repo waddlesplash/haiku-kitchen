@@ -33,8 +33,11 @@ function setPageTitle(title, description) {
 	$('#pageTitle p').html(description);
 }
 
-function pageLoadingFailed() {
-	setPageTitle('Ack!', 'Something went wrong! <i class="fa fa-frown-o"></i> Try reloading the page.');
+function pageLoadingFailed(err) {
+	if (err && err.status == 404)
+		setPageTitle('404 Not Found', 'We can’t find that page! <i class="fa fa-frown-o"></i>');
+	else
+		setPageTitle('Ack!', 'Something went wrong! <i class="fa fa-frown-o"></i> Try reloading the page.');
 	showContents();
 }
 
@@ -231,8 +234,7 @@ function navigate(force) {
 		break;
 
 	default:
-		setPageTitle('404 Not Found', 'We can’t find that page! <i class="fa fa-frown-o"></i>');
-		showContents();
+		pageLoadingFailed({status: 404});
 		currentHash = '';
 		return;
 	}
