@@ -109,6 +109,13 @@ a:hover {
 	border-top: 10px solid #D63E3E;
 }
 
+div.home {
+	font-size: 130%;
+}
+div.home a {
+	text-decoration: none;
+}
+
 /*********************************************************************************/
 /* Copyright                                                                     */
 /*********************************************************************************/
@@ -190,16 +197,18 @@ table.sortable thead tr th.sorting-desc:after {
 /*********************************************************************************/
 /* Builders                                                                      */
 /*********************************************************************************/
-div.builder {
+div.bordered, div.builder {
 	background: rgba(0, 0, 0, 0.2);
 	border-radius: 20px;
 	display: inline-block;
 	margin: 10px;
 	padding: 10px;
-	white-space: nowrap;
 	vertical-align: top;
 }
-div.builder .heading {
+div.builder {
+	white-space: nowrap;
+}
+div.bordered .heading, div.builder .heading {
 	font-weight: bold;
 	font-size: 150%;
 }
