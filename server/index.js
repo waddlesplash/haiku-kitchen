@@ -78,12 +78,7 @@ builderManager.onBuilderConnected(function (name) {
 });
 
 // find recipes that need to be linted & create a build if there are some
-var recipesToLint = [];
-for (var i in portsTree.recipes) {
-	if (!('lint' in portsTree.recipes[i]))
-		recipesToLint.push(i);
-}
-if (recipesToLint.length > 0) {
+function createJobToLintRecipes(recipes) {
 	var build = {
 		id: nextBuildId,
 		description: 'lint unlinted recipes',
@@ -101,12 +96,24 @@ if (recipesToLint.length > 0) {
 		}
 	};
 	nextBuildId++;
-	for (var i in recipesToLint) {
-		build.steps.push('haikuporter --lint ' + recipesToLint[i]);
+	for (var i in recipes) {
+		build.steps.push('haikuporter --lint ' + recipes[i]);
 	}
 	pendingBuilds[build.id] = build;
 	log('created lint-new-recipes build (#%d)', build.id);
 }
+var recipesToLint = [];
+for (var i in portsTree.recipes) {
+	if (!('lint' in portsTree.recipes[i]))
+		recipesToLint.push(i);
+}
+if (recipesToLint.length > 0)
+	createJobToLintRecipes(recipesToLint);
+portsTree.onRecipesChanged(function (recipes) {
+	builderManager.updateAllHaikuportsTrees(function () {
+		createJobToLintRecipes(recipes);
+	});
+});
 
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = express();

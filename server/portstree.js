@@ -109,6 +109,9 @@ module.exports = function () {
 		log('cache created successfully.');
 	}
 
+	this.onRecipesChanged = function (callback) {
+		this._recipesChangedCallback = callback;
+	};
 	this.update = function () {
 		var thisThis = this;
 		log('running git-pull...');
@@ -167,6 +170,14 @@ module.exports = function () {
 					log('deleted %d entries from the cache', deletedEntries);
 					thisThis._updateCacheFor(filesToUpdate);
 
+					var changedRecipes = [];
+					for (var i in filesToUpdate) {
+						var r = /[^/]*$/.exec(filesToUpdate[i])[0].replace('.recipe', '');
+						changedRecipes.push(r);
+						delete thisThis.recipes[r].lint;
+					}
+					if (thisThis._recipesChangedCallback != undefined)
+						thisThis._recipesChangedCallback(changedRecipes);
 					thisThis._updateHEAD();
 					thisThis._writeCache();
 				});

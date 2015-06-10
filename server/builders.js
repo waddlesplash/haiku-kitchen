@@ -29,6 +29,22 @@ module.exports = function () {
 				log('git-pull on builder %s failed: %s', builder, output.trim());
 		});
 	};
+	this.updateAllHaikuportsTrees = function (callback) {
+		var buildersToUpdate = 0, updated = 0;
+		for (var i in this._builderSockets) {
+			buildersToUpdate++;
+			this._updateHaikuportsTreeOn(i, function () {
+				updated++;
+				if (updated == buildersToUpdate && callback != undefined)
+					callback();
+			});
+		}
+		if (buildersToUpdate == 0) {
+			// No online builders, so just treat them as updated
+			if (callback != undefined)
+					callback();
+		}
+	};
 	this._ensureHaikuportsTreeOn = function (builder) {
 		var thisThis = this;
 		function treeIsReady() {
