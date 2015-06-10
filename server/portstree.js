@@ -34,6 +34,12 @@ module.exports = function () {
 				lint: recipe.lint
 			});
 		}
+		newClientRecipes.sort(function (a, b) {
+			if (a.category == b.category)
+				return (a.name > b.name) - (a.name < b.name);
+			else
+				return (a.category > b.category) - (a.category < b.category);
+		});
 		var thisThis = this;
 		zlib.gzip(JSON.stringify(newClientRecipes), {level: 9}, function (err, res) {
 			thisThis.clientRecipes = res;
