@@ -104,13 +104,13 @@ function showBuildersPage() {
 				if (data[i].status == 'online') {
 					onlineBuilders++;
 					html += '<i class="fa fa-check-circle-o"></i>';
-				} else if (data[i].status == 'restarting')
+				} else if (data[i].status == 'busy')
 					html += '<i class="fa fa-dot-circle-o" style="color: orange;"></i>';
 				else
 					html += '<i class="fa fa-times-circle-o"></i>';
 				html += '</span>&nbsp;&nbsp;<span>owner: ' +
 						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';
-				if (data[i].status === 'online') {
+				if (data[i].status == 'online' || data[i].status == 'busy') {
 					html += '<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' +
 							data[i].hrev + '">hrev' + data[i].hrev + '</a>, ' +
 						data[i].cores + (data[i].cores > 1 ? ' cores' : ' core') + ', ' +

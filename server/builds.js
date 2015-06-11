@@ -12,7 +12,7 @@ var log = require('debug')('kitchen:builds'), fs = require('fs');
 var kKeepBuildsCount = 10;
 
 module.exports = function (builderManager) {
-	var builds, nextBuildId = 1, availableBuilders = [], thisThis = this;
+	var builds, nextBuildId = 1, thisThis = this;
 	if (!fs.existsSync('data/logs')) {
 		fs.mkdirSync('data/logs');
 		builds = {};
@@ -44,7 +44,7 @@ module.exports = function (builderManager) {
 	this._writeBuilds();
 
 	this._buildFinished = function (builder, build) {
-		availableBuilders.push(builder);
+		builder.status = 'online';
 		build.lastTime = new Date();
 		this._writeBuilds();
 	};
@@ -80,6 +80,13 @@ module.exports = function (builderManager) {
 		builderManager.runCommandOn(builder, build.steps[build.curStep].command, commandFinished);
 	};
 	this._tryRunBuilds = function () {
+		var availableBuilders = [];
+		for (var i in builderManager.builders) {
+			var builder = builderManager.builders[i];
+			if (builder.status == 'online')
+				availableBuilders.push(builder);
+		}
+
 		for (var i in builds) {
 			if (availableBuilders.length == 0)
 				return;
@@ -87,6 +94,7 @@ module.exports = function (builderManager) {
 				continue;
 			if (builds[i].architecture == 'any') {
 				this._runBuildOn(availableBuilders[0], builds[i]);
+				availableBuilders[0].status = 'busy';
 				delete availableBuilders[0];
 			}
 		}
@@ -123,7 +131,6 @@ module.exports = function (builderManager) {
 	};
 
 	builderManager.onBuilderConnected(function (name) {
-		availableBuilders.push(name);
 		thisThis._tryRunBuilds();
 	});
 };

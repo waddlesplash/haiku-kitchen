@@ -52,6 +52,7 @@ module.exports = function () {
 			thisThis.runCommandOn(builder, 'haikuporter', function (exitcode, output) {
 				// Now that we've ensured there's an up-to-date HaikuPorts tree,
 				// we can fire the 'builder connected' signal.
+				thisThis.builders[builder].status = 'online';
 				if (thisThis._builderConnectedCallback != undefined) {
 					thisThis._builderConnectedCallback(builder);
 				}
@@ -149,9 +150,6 @@ module.exports = function () {
 			break;
 
 		case 'restarting':
-			builder.status = 'restarting';
-			break;
-
 		case 'ignore':
 			break;
 		default:
@@ -166,7 +164,7 @@ module.exports = function () {
 			sock.write(JSON.stringify(object) + '\n');
 		}
 
-		this.builders[name].status = 'online';
+		this.builders[name].status = 'busy';
 		this._builderSockets[name] = sock;
 		// startup stuff
 		sendJSON({what: 'command', replyWith: 'ignore',
@@ -193,11 +191,8 @@ module.exports = function () {
 		});
 		sock.on('close', function () {
 			log("builder '%s' disconnected", name);
-			if (thisThis.builders[name].status == 'online') {
-				// if the status is 'restarting' we don't want to delete it
-				delete thisThis.builders[name].status;
-			}
 			delete thisThis._builderSockets[name];
+			delete thisThis.builders[name].status;
 			delete thisThis.builders[name].hrev;
 			delete thisThis.builders[name].cores;
 			delete thisThis.builders[name].architecture;
