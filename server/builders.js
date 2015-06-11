@@ -16,24 +16,44 @@ if (!fs.existsSync('data/builders.json')) {
 
 module.exports = function () {
 	this.builders = JSON.parse(fs.readFileSync('data/builders.json',
-		{encoding: 'UTF-8'}));
+		{encoding: 'UTF-8'})), thisThis = this;
+
+	this.updateAllBuilders = function () {
+		log('updating builders');
+		var cmd = 'pkgman full-sync -y';
+		for (var builderName in thisThis._builderSockets) {
+			if (thisThis.builders[builderName].status != 'online')
+				continue;
+			thisThis.builders[builderName].status = 'busy';
+			thisThis._builderSockets[builderName].write(JSON.stringify({
+				what: 'command',
+				command: 'pkgman full-sync -y',
+				replyWith: 'updateResult'
+			}) + '\n');
+		}
+	};
 
 	this._updateHaikuportsTreeOn = function (builderName, callback) {
+		if (thisThis.builders[builderName].status != 'online')
+			return;
 		log('updating haikuporter/haikuports trees on %s', builderName);
 		var cmd = 'cd ~/haikuporter && git pull && cd ~/haikuports && git pull && cd ~';
+		this.builders[builderName].status = 'busy';
 		this.runCommandOn(builderName, cmd, function (exitcode, output) {
 			if (exitcode == 0) {
 				if (callback != undefined)
 					callback();
-			} else
+			} else {
 				log('git-pull on builder %s failed: %s', builderName, output.trim());
+				thisThis.builders[builderName].status = 'broken';
+			}
 		});
 	};
 	this.updateAllHaikuportsTrees = function (callback) {
 		var buildersToUpdate = 0, updated = 0;
-		for (var i in this._builderSockets) {
+		for (var i in thisThis._builderSockets) {
 			buildersToUpdate++;
-			this._updateHaikuportsTreeOn(i, function () {
+			thisThis._updateHaikuportsTreeOn(i, function () {
 				updated++;
 				if (updated == buildersToUpdate && callback != undefined)
 					callback();
@@ -42,19 +62,20 @@ module.exports = function () {
 		if (buildersToUpdate == 0) {
 			// No online builders, so just treat them as updated
 			if (callback != undefined)
-					callback();
+				callback();
 		}
 	};
 	this._ensureHaikuportsTreeOn = function (builderName) {
-		var thisThis = this;
 		function treeIsReady() {
 			log('haikuporter/haikuports clone/pull successful on %s', builderName);
 			thisThis.runCommandOn(builderName, 'haikuporter', function (exitcode, output) {
 				// Now that we've ensured there's an up-to-date HaikuPorts tree,
 				// we can fire the 'builder connected' signal.
-				thisThis.builders[builderName].status = 'online';
-				if (thisThis._builderConnectedCallback != undefined) {
-					thisThis._builderConnectedCallback(builderName);
+				if (thisThis.builders[builderName].status == 'busy') {
+					thisThis.builders[builderName].status = 'online';
+					if (thisThis._builderConnectedCallback != undefined) {
+						thisThis._builderConnectedCallback(builderName);
+					}
 				}
 			});
 		}
@@ -73,8 +94,10 @@ module.exports = function () {
 			thisThis.runCommandOn(builderName, cmd, function (exitcode, output) {
 				if (exitcode == 0)
 					treeIsReady();
-				else
+				else {
 					log('git-clone on builder %s failed: %s', builderName, output.trim());
+					thisThis.builders[builderName].status = 'broken';
+				}
 			});
 
 			var confFile = '~/config/settings/haikuports.conf';
@@ -85,9 +108,11 @@ module.exports = function () {
 			cmd = cmd.join(' >>' + confFile + ' && echo ');
 			cmd = 'rm -f ' + confFile + ' && echo ' + cmd + ' >>' + confFile;
 			thisThis.runCommandOn(builderName, cmd, function (exitcode, output) {
-				if (exitcode != 0)
+				if (exitcode != 0) {
 					log('attempt to create haikuports.conf on %s failed: %s',
 						builderName, output.trim());
+					thisThis.builders[builderName].status = 'broken';
+				}
 			});
 		});
 		this.runCommandOn(builderName, 'ln -s ~/haikuporter/haikuporter haikuporter');
@@ -149,6 +174,18 @@ module.exports = function () {
 				builder.flavor = 'unknown';
 			break;
 
+		case 'updateResult':
+			if (msg.exitcode != 0) {
+				log('update on builder %s failed, marking it as broken', builderName);
+				builder.status = 'broken';
+			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
+				// Already up-to-date.
+				builder.status = 'online';
+			} else {
+				sendJSON({what: 'restart'});
+			}
+			break;
+
 		case 'restarting':
 		case 'ignore':
 			break;
@@ -169,6 +206,8 @@ module.exports = function () {
 		// startup stuff
 		sendJSON({what: 'command', replyWith: 'ignore',
 			command: 'hey Tracker quit'});
+		sendJSON({what: 'command', replyWith: 'updateResult',
+			command: 'pkgman full-sync -y'});
 		// fetch builder info
 		sendJSON({what: 'getCores'});
 		sendJSON({what: 'command', replyWith: 'uname',

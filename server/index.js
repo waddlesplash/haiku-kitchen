@@ -35,6 +35,7 @@ timers.setInterval(portsTree.update, 10 * 60 * 1000);
 /*! --------------------- builds/builders --------------------- */
 var builderManager = global.builderManager = new BuilderManager(),
 	buildManager = global.buildManager = new BuildManager(builderManager);
+timers.setInterval(builderManager.updateAllBuilders, 240 * 60 * 1000);
 
 // find recipes that need to be linted & create a build if there are some
 function createJobToLintRecipes(recipes) {

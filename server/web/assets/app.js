@@ -103,11 +103,13 @@ function showBuildersPage() {
 					'<div class="builder"><span class="heading"> ' + i + ' ';
 				if (data[i].status == 'online') {
 					onlineBuilders++;
-					html += '<i class="fa fa-check-circle-o"></i>';
+					html += '<i class="fa fa-plug" style="color:green"></i>';
 				} else if (data[i].status == 'busy')
-					html += '<i class="fa fa-dot-circle-o" style="color: orange;"></i>';
+					html += '<i class="fa fa-dot-circle-o" style="color:orange"></i>';
+				else if (data[i].status == 'broken')
+					html += '<i class="fa fa-ban" style="color:red"></i>';
 				else
-					html += '<i class="fa fa-times-circle-o"></i>';
+					html += '<i class="fa fa-plug" style="color:lightgray"></i>';
 				html += '</span>&nbsp;&nbsp;<span>owner: ' +
 						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';
 				if (data[i].status == 'online' || data[i].status == 'busy') {
