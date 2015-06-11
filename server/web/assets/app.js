@@ -160,9 +160,30 @@ function showBuildPage(pageData) {
 		.done(function (data) {
 			$('#pageContentsBody').html(pageData);
 
-			$("#statusName").html(getFriendlyNameForStatus(data.status));
+			$("#builderName").text(data.builder);
+			$("#statusName").text(getFriendlyNameForStatus(data.status));
 			$("#buildStatus").addClass('status-' + data.status);
-			$("#lastTime").html($.timeago(data.lastTime));
+			$("#lastTime").text($.timeago(data.lastTime));
+
+			if (data.status == 'running') {
+				$("#duration").hide();
+				$("#builtOrBuilding").text('building on');
+			} else {
+				var duration = (new Date(data.lastTime).getTime() -
+						new Date(data.startTime).getTime()), durStr = '',
+					hours = Math.floor(duration / 1000 / 60 / 60);
+				duration -= hours * 1000 * 60 * 60;
+				var min = Math.floor(duration / 1000 / 60);
+				duration -= min * 1000 * 60;
+				var sec = Math.floor(duration / 1000);
+				if (hours > 0)
+					durStr += hours + ' hours, ';
+				if (min > 0)
+					durStr += min + ' minutes';
+				else if (sec > 0)
+					durStr += sec + ' seconds';
+				$("#durationText").text(durStr);
+			}
 
 			for (var i in data.steps) {
 				var status, step = data.steps[i];

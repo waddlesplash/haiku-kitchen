@@ -108,7 +108,9 @@ app.get('/api/build/*', function (request, response) {
 	var respJson = {
 		id: build.id,
 		status: build.status,
+		builder: build.builder,
 		description: build.description,
+		startTime: build.startTime,
 		lastTime: build.lastTime,
 		steps: build.steps,
 		curStep: build.curStep

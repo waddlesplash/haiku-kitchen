@@ -45,6 +45,7 @@ module.exports = function (builderManager) {
 
 	this._buildFinished = function (builderName, build) {
 		builderManager.builders[builderName].status = 'online';
+		build.startTime = build.lastTime;
 		build.lastTime = new Date();
 		this._writeBuilds();
 	};
@@ -52,6 +53,7 @@ module.exports = function (builderManager) {
 		log('starting build #%d...', build.id);
 		build.status = 'running';
 		build.lastTime = new Date();
+		build.builder = builderName;
 
 		build.curStep = 0;
 		function commandFinished(exitcode, output) {
