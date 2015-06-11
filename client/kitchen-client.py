@@ -15,23 +15,23 @@ if (not os.path.isfile(confFilename)):
 wantToExit = False
 thisFile = __file__
 def exit_handler():
-	if ((not wantToExit) and (sys.last_type != KeyboardInterrupt)):
+	if (not wantToExit and (not hasattr(sys, 'last_type')
+		or sys.last_type != KeyboardInterrupt)):
 		# something happened (probably socket close?) so just restart
-		print "Something happened; restarting process..."
+		print "Restarting process..."
 		os.execv(thisFile, sys.argv)
 atexit.register(exit_handler)
 
 with open (confFilename, 'r') as confFile:
-    try:
-    	conf = json.loads(confFile.read().replace('\n', ''))
-    except ValueError:
-    	wantToExit = True
-    	print "Error: Your conf file is invalid JSON (filename: {0})".format(confFilename) 
-    	sys.exit(1)
+	try:
+		conf = json.loads(confFile.read().replace('\n', ''))
+	except ValueError:
+		wantToExit = True
+		print "Error: Your conf file is invalid JSON (filename: {0})".format(confFilename)
+		sys.exit(1)
 
 sock = socket.socket()
 sock.connect((conf['ip'], 42458))
-sock.settimeout(5)
 
 def sendJSON(obj):
 	"Writes the dictionary object passed to the socket as JSON."
@@ -39,6 +39,7 @@ def sendJSON(obj):
 
 sock = ssl.wrap_socket(sock, ssl_version = ssl.PROTOCOL_TLSv1,
 					   cert_reqs = ssl.CERT_NONE)
+sock.setblocking(1)
 
 authMsg = {'what': 'auth', 'name': conf['name'], 'key': conf['key']}
 sock.recv(1) # wait until we recieve the first newline
@@ -47,13 +48,11 @@ sendJSON(authMsg)
 dataBuf = ''
 while True:
 	while (not ('\n' in dataBuf)):
-		try:
-			dataBuf += sock.recv(1024)
-		except ssl.SSLError as err:
-			if (cmp(err, socket.timeout)):
-				pass
-			else:
-				raise
+		newData = sock.recv(1024)
+		if (not newData):
+			print "Socket was closed."
+			exit_handler()
+		dataBuf += newData
 	data = dataBuf.split('\n')
 	dataBuf = data[-1]
 	del data[-1]
