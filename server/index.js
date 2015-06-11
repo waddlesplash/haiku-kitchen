@@ -83,12 +83,12 @@ app.get('/api/builders', function (request, response) {
 	for (var i in builderManager.builders) {
 		var builder = builderManager.builders[i];
 		respJson[i] = {
-			owner: builder.owner,
+			owner: builder._data.owner,
 			hrev: builder.hrev,
 			cores: builder.cores,
-			architecture: builder.architecture,
-			flavor: builder.flavor,
-			status: builder.status
+			architecture: builder._data.architecture,
+			flavor: builder._data.flavor,
+			status: builder.status()
 		};
 	}
 	response.writeHead(200, {'Content-Type': 'application/json'});

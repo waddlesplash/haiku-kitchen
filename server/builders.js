@@ -14,38 +14,170 @@ if (!fs.existsSync('data/builders.json')) {
 	process.exit(1);
 }
 
+function Builder(builderManager, name, data) {
+	this._socket = null;
+	this._data = data;
+	this._name = name;
+
+	this.status = function (newStatus) {
+		if (newStatus != undefined && this._data.status != 'broken')
+			return this._data.status = newStatus;
+		return this._data.status;
+	};
+	this.status('offline');
+
+	this._runningCommands = {};
+	this._nextCommandId = 0;
+	this.runCommand = function (command, callback) {
+		var cmdId = 'cmd' + this._nextCommandId;
+		this._nextCommandId++;
+		this._runningCommands[cmdId] = {
+			callback: callback
+		};
+		this._sendMessage({what: 'command', replyWith: cmdId, command: command});
+	};
+
+	this._sendMessage = function (object) {
+		this._socket.write(JSON.stringify(object) + '\n');
+	};
+
+	this._handleMessage = function (msg) {
+		if (msg.what.indexOf('cmd') == 0) {
+			if (!(msg.what in this._runningCommands)) {
+				log('WARN: message returned for pending command that does ' +
+					'not exist: builder %s, result: %s', this._name, JSON.stringify(msg));
+			} else {
+				var callback = this._runningCommands[msg.what].callback;
+				if (callback !== undefined)
+					callback(msg.exitcode, msg.output);
+				delete this._runningCommands[msg.what];
+			}
+			return;
+		}
+
+		switch (msg.what) {
+		// information about the builder
+		case 'coreCount':
+			this.cores = msg.count;
+			break;
+		case 'uname':
+			var uname = msg.output.trim().split(' ');
+			this.hrev = uname[3].substr(4);
+			this._data.architecture = uname[10];
+			break;
+		case 'archlist':
+			var archlist = msg.output.trim().replace(/\n/g, ' ');
+			if (archlist == 'x86_gcc2 x86')
+				this._data.flavor = 'gcc2hybrid';
+			else if (archlist == 'x86 x86_gcc2')
+				this._data.flavor = 'gcc4hybrid';
+			else if (archlist == this._data.architecture)
+				this._data.flavor = 'pure';
+			else
+				this._data.flavor = 'unknown';
+			break;
+
+		case 'updateResult':
+			if (msg.exitcode != 0) {
+				log('update on builder %s failed, marking it as broken', this._name);
+				this.status('broken');
+			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
+				// Already up-to-date.
+				this.status('online');
+			} else {
+				log('update on builder %s succeeded, rebooting', this._name);
+				this._sendMessage({what: 'restart'});
+			}
+			break;
+
+		case 'restarting':
+		case 'ignore':
+			break;
+		default:
+			log("WARN: couldn't understand this message from '%s': %s", this._name,
+				JSON.stringify(msg));
+			break;
+		}
+	};
+	this._authenticated = function (sock) {
+		this._socket = sock;
+
+		this.status('busy');
+		if (this.status() != 'broken') {
+			// startup stuff
+			this._sendMessage({what: 'command', replyWith: 'ignore',
+				command: 'hey Tracker quit'});
+			this._sendMessage({what: 'command', replyWith: 'updateResult',
+				command: 'pkgman full-sync -y'});
+			// fetch builder info
+			this._sendMessage({what: 'getCores'});
+			this._sendMessage({what: 'command', replyWith: 'uname',
+				command: 'uname -a'});
+			this._sendMessage({what: 'command', replyWith: 'archlist',
+				command: 'setarch -l'});
+			builderManager._ensureHaikuportsTreeOn(this._name);
+		}
+
+		var thisThis = this, dataBuf = '', data;
+		sock.on('data', function (dat) {
+			dataBuf += dat.toString();
+			data = dataBuf.split('\n');
+			dataBuf = data[data.length - 1];
+			delete data[data.length - 1];
+
+			for (var i in data) {
+				var msg = JSON.parse(data[i]);
+				thisThis._handleMessage(msg);
+			}
+		});
+		sock.on('close', function () {
+			log("builder '%s' disconnected", thisThis._name);
+			thisThis._socket = null;
+			thisThis._data.status = 'offline';
+			delete thisThis.hrev;
+			delete thisThis.cores;
+		});
+	};
+}
+
 module.exports = function () {
-	this.builders = JSON.parse(fs.readFileSync('data/builders.json',
-		{encoding: 'UTF-8'})), thisThis = this;
+	var thisThis = this;
+
+	this.builders = {}; {
+		var buildersData = JSON.parse(fs.readFileSync('data/builders.json',
+			{encoding: 'UTF-8'}))
+		for (var name in buildersData)
+			this.builders[name] = new Builder(this, name, buildersData[name]);
+	}
 
 	this.updateAllBuilders = function () {
 		log('updating builders');
 		var cmd = 'pkgman full-sync -y';
-		for (var builderName in thisThis._builderSockets) {
-			if (thisThis.builders[builderName].status != 'online')
+		for (var builderName in thisThis.builders) {
+			var builder = thisThis.builders[builderName];
+			if (builder.status() != 'online')
 				continue;
-			thisThis.builders[builderName].status = 'busy';
-			thisThis._builderSockets[builderName].write(JSON.stringify({
-				what: 'command',
-				command: 'pkgman full-sync -y',
-				replyWith: 'updateResult'
-			}) + '\n');
+			builder.status('busy');
+			builder._sendMessage({what: 'command',
+				command: 'pkgman full-sync -y', replyWith: 'updateResult'});
 		}
 	};
 
 	this._updateHaikuportsTreeOn = function (builderName, callback) {
-		if (thisThis.builders[builderName].status != 'online')
+		var builder = this.builders[builderName];
+		if (builder.status() != 'online')
 			return;
 		log('updating haikuporter/haikuports trees on %s', builderName);
 		var cmd = 'cd ~/haikuporter && git pull && cd ~/haikuports && git pull && cd ~';
-		this.builders[builderName].status = 'busy';
-		this.runCommandOn(builderName, cmd, function (exitcode, output) {
+		builder.status('busy');
+		builder.runCommand(cmd, function (exitcode, output) {
 			if (exitcode == 0) {
+				builder.status('online');
 				if (callback != undefined)
 					callback();
 			} else {
 				log('git-pull on builder %s failed: %s', builderName, output.trim());
-				thisThis.builders[builderName].status = 'broken';
+				builder.status('broken');
 			}
 		});
 	};
@@ -68,20 +200,20 @@ module.exports = function () {
 	this._ensureHaikuportsTreeOn = function (builderName) {
 		function treeIsReady() {
 			log('haikuporter/haikuports clone/pull successful on %s', builderName);
-			thisThis.runCommandOn(builderName, 'haikuporter', function (exitcode, output) {
+			var builder = thisThis.builders[builderName];
+			builder.runCommand('haikuporter', function (exitcode, output) {
 				// Now that we've ensured there's an up-to-date HaikuPorts tree,
 				// we can fire the 'builder connected' signal.
-				if (thisThis.builders[builderName].status == 'busy') {
-					thisThis.builders[builderName].status = 'online';
-					if (thisThis._builderConnectedCallback != undefined) {
+				if (builder.status('busy')) {
+					builder.status('online');
+					if (thisThis._builderConnectedCallback != undefined)
 						thisThis._builderConnectedCallback(builderName);
-					}
 				}
 			});
 		}
 
 		var cmd = 'ls ~/haikuporter/ && ls ~/haikuports/';
-		this.runCommandOn(builderName, cmd, function (exitcode, output) {
+		thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
 			if (exitcode == 0) {
 				// they're already there, just update them
 				thisThis._updateHaikuportsTreeOn(builderName, treeIsReady);
@@ -91,12 +223,12 @@ module.exports = function () {
 			log('cloning new haikuporter/haikuports trees on %s', builderName);
 			cmd = 'cd ~ && git clone https://bitbucket.org/haikuports/haikuporter.git ' +
 				'--depth=1 && git clone https://bitbucket.org/haikuports/haikuports.git --depth=1';
-			thisThis.runCommandOn(builderName, cmd, function (exitcode, output) {
+			thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
 				if (exitcode == 0)
 					treeIsReady();
 				else {
 					log('git-clone on builder %s failed: %s', builderName, output.trim());
-					thisThis.builders[builderName].status = 'broken';
+					thisThis.builders[builderName].status('broken');
 				}
 			});
 
@@ -107,136 +239,19 @@ module.exports = function () {
 				];
 			cmd = cmd.join(' >>' + confFile + ' && echo ');
 			cmd = 'rm -f ' + confFile + ' && echo ' + cmd + ' >>' + confFile;
-			thisThis.runCommandOn(builderName, cmd, function (exitcode, output) {
+			thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
 				if (exitcode != 0) {
 					log('attempt to create haikuports.conf on %s failed: %s',
 						builderName, output.trim());
-					thisThis.builders[builderName].status = 'broken';
+					thisThis.builders[builderName].status('broken');
 				}
 			});
 		});
-		this.runCommandOn(builderName, 'ln -s ~/haikuporter/haikuporter haikuporter');
-	};
-
-	this._builderSockets = {};
-	this._runningCommands = {};
-	this._nextCommandId = 0;
-	this.runCommandOn = function (builderName, command, callback) {
-		if (!(builderName in this.builders)) {
-			throw 'Builder does not exist!';
-		}
-		var cmdId = 'cmd' + this._nextCommandId;
-		this._nextCommandId++;
-		this._runningCommands[cmdId] = {
-			callback: callback
-		};
-		this._builderSockets[builderName].write(JSON.stringify({what: 'command',
-			replyWith: cmdId, command: command}) + '\n');
+		thisThis.builders[builderName].runCommand('ln -s ~/haikuporter/haikuporter haikuporter');
 	};
 
 	this.onBuilderConnected = function (callback) {
 		this._builderConnectedCallback = callback;
-	};
-	this._handleMessage = function (builderName, msg, sendJSON) {
-		if (msg.what.indexOf('cmd') == 0) {
-			if (!(msg.what in this._runningCommands)) {
-				log('WARN: message returned for pending command that does ' +
-					'not exist: builder %s, result: %s', builderName, JSON.stringify(msg));
-			} else {
-				var callback = this._runningCommands[msg.what].callback;
-				if (callback !== undefined)
-					callback(msg.exitcode, msg.output);
-				delete this._runningCommands[msg.what];
-			}
-			return;
-		}
-
-		var builder = this.builders[builderName];
-		switch (msg.what) {
-		// information about the builder
-		case 'coreCount':
-			builder.cores = msg.count;
-			break;
-		case 'uname':
-			var uname = msg.output.trim().split(' ');
-			builder.hrev = uname[3].substr(4);
-			builder.architecture = uname[10];
-			break;
-		case 'archlist':
-			var archlist = msg.output.trim().replace(/\n/g, ' ');
-			if (archlist == 'x86_gcc2 x86')
-				builder.flavor = 'gcc2hybrid';
-			else if (archlist == 'x86 x86_gcc2')
-				builder.flavor = 'gcc4hybrid';
-			else if (archlist == builder.architecture)
-				builder.flavor = 'pure';
-			else
-				builder.flavor = 'unknown';
-			break;
-
-		case 'updateResult':
-			if (msg.exitcode != 0) {
-				log('update on builder %s failed, marking it as broken', builderName);
-				builder.status = 'broken';
-			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
-				// Already up-to-date.
-				builder.status = 'online';
-			} else {
-				sendJSON({what: 'restart'});
-			}
-			break;
-
-		case 'restarting':
-		case 'ignore':
-			break;
-		default:
-			log("WARN: couldn't understand this message from '%s': %s", name,
-				JSON.stringify(msg));
-			break;
-		}
-	};
-
-	this._builderAuthenticated = function (sock, name) {
-		function sendJSON(object) {
-			sock.write(JSON.stringify(object) + '\n');
-		}
-
-		this.builders[name].status = 'busy';
-		this._builderSockets[name] = sock;
-		// startup stuff
-		sendJSON({what: 'command', replyWith: 'ignore',
-			command: 'hey Tracker quit'});
-		sendJSON({what: 'command', replyWith: 'updateResult',
-			command: 'pkgman full-sync -y'});
-		// fetch builder info
-		sendJSON({what: 'getCores'});
-		sendJSON({what: 'command', replyWith: 'uname',
-			command: 'uname -a'});
-		sendJSON({what: 'command', replyWith: 'archlist',
-			command: 'setarch -l'});
-		this._ensureHaikuportsTreeOn(name);
-
-		var thisThis = this, dataBuf = '', data;
-		sock.on('data', function (dat) {
-			dataBuf += dat.toString();
-			data = dataBuf.split('\n');
-			dataBuf = data[data.length - 1];
-			delete data[data.length - 1];
-
-			for (var i in data) {
-				var msg = JSON.parse(data[i]);
-				thisThis._handleMessage(name, msg, sendJSON);
-			}
-		});
-		sock.on('close', function () {
-			log("builder '%s' disconnected", name);
-			delete thisThis._builderSockets[name];
-			delete thisThis.builders[name].status;
-			delete thisThis.builders[name].hrev;
-			delete thisThis.builders[name].cores;
-			delete thisThis.builders[name].architecture;
-			delete thisThis.builders[name].flavor;
-		});
 	};
 
 	var options = {
@@ -267,11 +282,13 @@ module.exports = function () {
 			}
 
 			// process key
-			var hash = thisThis.builders[msg.name].keyHash.substr(0, 44),
-				salt = thisThis.builders[msg.name].keyHash.substr(44),
+			var builder = thisThis.builders[msg.name];
+			var hash = builder._data.keyHash.substr(0, 44),
+				salt = builder._data.keyHash.substr(44),
 				sha256sum = crypto.createHash('SHA256');
 			sha256sum.update(msg.key + salt);
 			var hashedKey = sha256sum.digest('base64');
+			sock.removeAllListeners('data');
 			if (hashedKey != hash) {
 				log("AUTHFAIL: hash for key of builder '%s' is '%s', " +
 					"but '%s' was expected.", msg.name, hashedKey, hash);
@@ -280,8 +297,7 @@ module.exports = function () {
 			}
 			log("builder '%s' successfully authenticated from IP %s",
 				msg.name, sock.remoteAddress);
-			sock.removeAllListeners('data');
-			thisThis._builderAuthenticated(sock, msg.name);
+			builder._authenticated(sock);
 		});
 		sock.write('\n'); // indicates to the builder we're ready
 	}).listen(42458 /* HAIKU */);

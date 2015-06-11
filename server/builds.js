@@ -54,6 +54,7 @@ module.exports = function (builderManager) {
 		build.status = 'running';
 		build.lastTime = new Date();
 		build.builder = builderName;
+		var builder = builderManager.builders[builderName];
 
 		build.curStep = 0;
 		function commandFinished(exitcode, output) {
@@ -77,9 +78,9 @@ module.exports = function (builderManager) {
 				log('build #%d succeeded!', build.id);
 				return;
 			}
-			builderManager.runCommandOn(builderName, build.steps[build.curStep].command, commandFinished);
+			builder.runCommand(build.steps[build.curStep].command, commandFinished);
 		}
-		builderManager.runCommandOn(builderName, build.steps[build.curStep].command, commandFinished);
+		builder.runCommand(build.steps[build.curStep].command, commandFinished);
 	};
 	this._tryRunBuilds = function () {
 		var availableBuilders = [];
