@@ -18,9 +18,6 @@ if (!shell.which('git')) {
 }
 
 module.exports = function () {
-	// Having these functions be inline instead of in a prototype consumes more
-	// RAM, but since there should only be one instance of this object anyway
-	// it shouldn't be an issue.
 	var thisThis = this;
 
 	this._updateClientCache = function () {
