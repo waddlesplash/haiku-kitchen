@@ -43,12 +43,12 @@ module.exports = function (builderManager) {
 	};
 	this._writeBuilds();
 
-	this._buildFinished = function (builder, build) {
-		builder.status = 'online';
+	this._buildFinished = function (builderName, build) {
+		builderManager.builders[builderName].status = 'online';
 		build.lastTime = new Date();
 		this._writeBuilds();
 	};
-	this._runBuildOn = function (builder, build) {
+	this._runBuildOn = function (builderName, build) {
 		log('starting build #%d...', build.id);
 		build.status = 'running';
 		build.lastTime = new Date();
@@ -60,7 +60,7 @@ module.exports = function (builderManager) {
 			step.output = output.trim();
 			if (!build.handleResult(step.command, exitcode, output)) {
 				build.status = 'failed';
-				thisThis._buildFinished(builder, build);
+				thisThis._buildFinished(builderName, build);
 				log('build #%d failed on step %d', build.id, build.curStep);
 				return;
 			}
@@ -71,20 +71,19 @@ module.exports = function (builderManager) {
 					build.onSuccess();
 				delete build.curStep;
 				build.status = 'succeeded';
-				thisThis._buildFinished(builder, build);
+				thisThis._buildFinished(builderName, build);
 				log('build #%d succeeded!', build.id);
 				return;
 			}
-			builderManager.runCommandOn(builder, build.steps[build.curStep].command, commandFinished);
+			builderManager.runCommandOn(builderName, build.steps[build.curStep].command, commandFinished);
 		}
-		builderManager.runCommandOn(builder, build.steps[build.curStep].command, commandFinished);
+		builderManager.runCommandOn(builderName, build.steps[build.curStep].command, commandFinished);
 	};
 	this._tryRunBuilds = function () {
 		var availableBuilders = [];
-		for (var i in builderManager.builders) {
-			var builder = builderManager.builders[i];
-			if (builder.status == 'online')
-				availableBuilders.push(builder);
+		for (var builderName in builderManager.builders) {
+			if (builderManager.builders[builderName].status == 'online')
+				availableBuilders.push(builderName);
 		}
 
 		for (var i in builds) {

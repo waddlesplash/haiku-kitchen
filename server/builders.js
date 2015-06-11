@@ -18,15 +18,15 @@ module.exports = function () {
 	this.builders = JSON.parse(fs.readFileSync('data/builders.json',
 		{encoding: 'UTF-8'}));
 
-	this._updateHaikuportsTreeOn = function (builder, callback) {
-		log('updating haikuporter/haikuports trees on %s', builder);
+	this._updateHaikuportsTreeOn = function (builderName, callback) {
+		log('updating haikuporter/haikuports trees on %s', builderName);
 		var cmd = 'cd ~/haikuporter && git pull && cd ~/haikuports && git pull && cd ~';
-		this.runCommandOn(builder, cmd, function (exitcode, output) {
+		this.runCommandOn(builderName, cmd, function (exitcode, output) {
 			if (exitcode == 0) {
 				if (callback != undefined)
 					callback();
 			} else
-				log('git-pull on builder %s failed: %s', builder, output.trim());
+				log('git-pull on builder %s failed: %s', builderName, output.trim());
 		});
 	};
 	this.updateAllHaikuportsTrees = function (callback) {
@@ -45,36 +45,36 @@ module.exports = function () {
 					callback();
 		}
 	};
-	this._ensureHaikuportsTreeOn = function (builder) {
+	this._ensureHaikuportsTreeOn = function (builderName) {
 		var thisThis = this;
 		function treeIsReady() {
-			log('haikuporter/haikuports clone/pull successful on %s', builder);
-			thisThis.runCommandOn(builder, 'haikuporter', function (exitcode, output) {
+			log('haikuporter/haikuports clone/pull successful on %s', builderName);
+			thisThis.runCommandOn(builderName, 'haikuporter', function (exitcode, output) {
 				// Now that we've ensured there's an up-to-date HaikuPorts tree,
 				// we can fire the 'builder connected' signal.
-				thisThis.builders[builder].status = 'online';
+				thisThis.builders[builderName].status = 'online';
 				if (thisThis._builderConnectedCallback != undefined) {
-					thisThis._builderConnectedCallback(builder);
+					thisThis._builderConnectedCallback(builderName);
 				}
 			});
 		}
 
 		var cmd = 'ls ~/haikuporter/ && ls ~/haikuports/';
-		this.runCommandOn(builder, cmd, function (exitcode, output) {
+		this.runCommandOn(builderName, cmd, function (exitcode, output) {
 			if (exitcode == 0) {
 				// they're already there, just update them
-				thisThis._updateHaikuportsTreeOn(builder, treeIsReady);
+				thisThis._updateHaikuportsTreeOn(builderName, treeIsReady);
 				return;
 			}
 			// didn't exit with 0, probably means there's no haikuports/haikuporter
-			log('cloning new haikuporter/haikuports trees on %s', builder);
+			log('cloning new haikuporter/haikuports trees on %s', builderName);
 			cmd = 'cd ~ && git clone https://bitbucket.org/haikuports/haikuporter.git ' +
 				'--depth=1 && git clone https://bitbucket.org/haikuports/haikuports.git --depth=1';
-			thisThis.runCommandOn(builder, cmd, function (exitcode, output) {
+			thisThis.runCommandOn(builderName, cmd, function (exitcode, output) {
 				if (exitcode == 0)
 					treeIsReady();
 				else
-					log('git-clone on builder %s failed: %s', builder, output.trim());
+					log('git-clone on builder %s failed: %s', builderName, output.trim());
 			});
 
 			var confFile = '~/config/settings/haikuports.conf';
@@ -84,20 +84,20 @@ module.exports = function () {
 				];
 			cmd = cmd.join(' >>' + confFile + ' && echo ');
 			cmd = 'rm -f ' + confFile + ' && echo ' + cmd + ' >>' + confFile;
-			thisThis.runCommandOn(builder, cmd, function (exitcode, output) {
+			thisThis.runCommandOn(builderName, cmd, function (exitcode, output) {
 				if (exitcode != 0)
 					log('attempt to create haikuports.conf on %s failed: %s',
-						builder, output.trim());
+						builderName, output.trim());
 			});
 		});
-		this.runCommandOn(builder, 'ln -s ~/haikuporter/haikuporter haikuporter');
+		this.runCommandOn(builderName, 'ln -s ~/haikuporter/haikuporter haikuporter');
 	};
 
 	this._builderSockets = {};
 	this._runningCommands = {};
 	this._nextCommandId = 0;
-	this.runCommandOn = function (builder, command, callback) {
-		if (!(builder in this.builders)) {
+	this.runCommandOn = function (builderName, command, callback) {
+		if (!(builderName in this.builders)) {
 			throw 'Builder does not exist!';
 		}
 		var cmdId = 'cmd' + this._nextCommandId;
@@ -105,18 +105,18 @@ module.exports = function () {
 		this._runningCommands[cmdId] = {
 			callback: callback
 		};
-		this._builderSockets[builder].write(JSON.stringify({what: 'command',
+		this._builderSockets[builderName].write(JSON.stringify({what: 'command',
 			replyWith: cmdId, command: command}) + '\n');
 	};
 
 	this.onBuilderConnected = function (callback) {
 		this._builderConnectedCallback = callback;
 	};
-	this._handleMessage = function (name, msg, sendJSON) {
+	this._handleMessage = function (builderName, msg, sendJSON) {
 		if (msg.what.indexOf('cmd') == 0) {
 			if (!(msg.what in this._runningCommands)) {
 				log('WARN: message returned for pending command that does ' +
-					'not exist: builder %s, result: %s', name, JSON.stringify(msg));
+					'not exist: builder %s, result: %s', builderName, JSON.stringify(msg));
 			} else {
 				var callback = this._runningCommands[msg.what].callback;
 				if (callback !== undefined)
@@ -126,7 +126,7 @@ module.exports = function () {
 			return;
 		}
 
-		var builder = this.builders[name];
+		var builder = this.builders[builderName];
 		switch (msg.what) {
 		// information about the builder
 		case 'coreCount':
