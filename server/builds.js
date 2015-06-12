@@ -8,9 +8,14 @@
 
 var log = require('debug')('kitchen:builds'), fs = require('fs');
 
-/*! Manages pending/running/finished builds. */
+/** (constant) The number of most recent builds to keep in `builds.json`. */
 var kKeepBuildsCount = 10;
 
+/**
+  * @class BuildsManager
+  * @description Instatiates a new BuildsManager object.
+  * @param {BuilderManager} builderManager The BuilderManager instance.
+  */
 module.exports = function (builderManager) {
 	var builds, nextBuildId = 1, thisThis = this;
 	if (!fs.existsSync('data/logs')) {
@@ -23,6 +28,11 @@ module.exports = function (builderManager) {
 			{encoding: 'UTF-8'});
 	}
 
+	/**
+	  * @private
+	  * @memberof! BuildsManager.prototype
+	  * @description Writes the current in-memory builds data to disk.
+	  */
 	this._writeBuilds = function () {
 		fs.writeFile('data/nextBuildId.json', JSON.stringify({id: nextBuildId}));
 		if (Object.keys(builds).length > kKeepBuildsCount) {
@@ -43,12 +53,29 @@ module.exports = function (builderManager) {
 	};
 	this._writeBuilds();
 
+	/**
+	  * @private
+	  * @memberof! BuildsManager.prototype
+	  * @description Called after a build finishes. Performs general operations
+	  *   that need to be performed no matter if the build failed or succeeded
+	  *   (re-setting the builder's status to 'online' from 'busy', etc.).
+	  * @param {string} builderName The name of the builder that this build was run on.
+	  * @param {Object} build The object of the build that just finished.
+	  */
 	this._buildFinished = function (builderName, build) {
-		builderManager.builders[builderName].status = 'online';
+		builderManager.builders[builderName].status('online');
 		build.startTime = build.lastTime;
 		build.lastTime = new Date();
 		this._writeBuilds();
+		this._tryRunBuilds();
 	};
+	/**
+	  * @private
+	  * @memberof! BuildsManager.prototype
+	  * @description Runs the specified build on the specified builder.
+	  * @param {string} builderName The name of the builder run the build on.
+	  * @param {Object} build The object of the build to run.
+	  */
 	this._runBuildOn = function (builderName, build) {
 		log('starting build #%d...', build.id);
 		build.status = 'running';
@@ -82,10 +109,15 @@ module.exports = function (builderManager) {
 		}
 		builder.runCommand(build.steps[build.curStep].command, commandFinished);
 	};
+	/**
+	  * @private
+	  * @memberof! BuildsManager.prototype
+	  * @description Looks for available builders to run all pending builds on.
+	  */
 	this._tryRunBuilds = function () {
 		var availableBuilders = [];
 		for (var builderName in builderManager.builders) {
-			if (builderManager.builders[builderName].status == 'online')
+			if (builderManager.builders[builderName].status() == 'online')
 				availableBuilders.push(builderName);
 		}
 
@@ -96,12 +128,19 @@ module.exports = function (builderManager) {
 				continue;
 			if (builds[i].architecture == 'any') {
 				this._runBuildOn(availableBuilders[0], builds[i]);
-				availableBuilders[0].status = 'busy';
+				builderManager.builders[builderName].status('busy');
 				delete availableBuilders[0];
 			}
 		}
 	};
 
+	/**
+	  * @public
+	  * @memberof! BuildsManager.prototype
+	  * @description Adds the specified build to the list of pending
+	  *   builds.
+	  * @param {Object} build The object of the build to add.
+	  */
 	this.addBuild = function (build) {
 		build.id = nextBuildId++;
 		this._writeBuilds();
@@ -111,6 +150,13 @@ module.exports = function (builderManager) {
 		log("build #%d ('%s') created", build.id, build.description);
 		this._tryRunBuilds();
 	};
+	/**
+	  * @public
+	  * @memberof! BuildsManager.prototype
+	  * @description Summarizes the current list of builds in a format
+	  *   fit for client (webapp) consumption.
+	  * @returns {Object} The created summary of current builds.
+	  */
 	this.buildsSummary = function () {
 		var ret = [];
 		for (var i in builds) {
@@ -128,6 +174,13 @@ module.exports = function (builderManager) {
 		});
 		return ret;
 	};
+	/**
+	  * @public
+	  * @memberof! BuildsManager.prototype
+	  * @description Returns the full list of in-memory builds, including
+	  *   steps, console output, and status.
+	  * @returns {Object} The `builds` object.
+	  */
 	this.builds = function () {
 		return builds;
 	};

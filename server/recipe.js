@@ -8,9 +8,15 @@
 
 var fs = require('fs');
 
-/*! This is a really rudimentary .recipe parser. It can't handle all of
- * Bash's syntax, but it handles enough for our purposes. */
-
+/**
+  * @constructor Recipe
+  * @description Parses the recipe at the specified filepath.
+  * Currently, only the following attributes of the recipe are stored:
+  * `NAME`, `VERSION`, `CATEGORY`, `REVISION`, `ARCHITECTURES`, `PROVIDES*`,
+  * `REQUIRES*`, `BUILD_REQUIRES`, and `BUILD_PREREQUIRES`.
+  *
+  * @param {string} filepath The filepath of the recipe to load in.
+  */
 module.exports = function (filepath) {
 	if (!fs.existsSync(filepath)) {
 		throw "File does not exist!";
@@ -28,6 +34,8 @@ module.exports = function (filepath) {
 	this.architectures = [];
 	this.revision = 0;
 
+	/*! This is a really rudimentary .recipe parser. It can't handle all of
+	 * Bash's syntax, but it handles enough for our purposes. */
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
 	for (var i = 0; i < rawRecipe.length; i++) {
 		var variables = ['REVISION', 'ARCHITECTURES', 'PROVIDES', 'REQUIRES',

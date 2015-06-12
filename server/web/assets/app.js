@@ -6,33 +6,53 @@
  *		Augustin Cavalier <waddlesplash>
  */
 
-var kArchitecture = ['x86', 'x86_64', 'x86_gcc2', 'arm', 'ppc'];
+var global = this;
+
+/** @namespace */
+var webApp = function () {
+
+/** (constant) The possible architectures, in order. */
+var kArchitectures = ['x86', 'x86_64', 'x86_gcc2', 'arm', 'ppc'];
+
+/**
+  * Get the user-friendly name for the specified status.
+  * @param {string} status The status to return a friendly name for.
+  * @returns {string} The user-friendly name, or the passed string if one doesn't exist.
+  */
 function getFriendlyNameForStatus(status) {
 	if (status == 'pending')
 		return 'queued';
 	else if (status == 'running')
 		return 'started';
-	else
-		return status;
+	return status;
 }
 
-/*! toggles the contents and spinner areas */
+/** Hides the `pageContents` area and shows the spinner. */
 function hideContents() {
 	$('#pageContents').hide();
 	$('#loading-placeholder').show();
 }
+/** Hides the spinner and shows the `pageContents` area. */
 function showContents() {
 	$('#loading-placeholder').hide();
 	$('#pageContents').show();
 }
 
-/*! sets the page <title> and <div id='pageTitle'> */
+/**
+  * Sets the page `<title>` and `<div id="pageTitle">`.
+  * @param {string} title The of the page.
+  * @param {string} description The description of the page.
+  */
 function setPageTitle(title, description) {
-	$('title').html(title + ' | Haiku Kitchen');
-	$('#pageTitle h2').html(title);
-	$('#pageTitle p').html(description);
+	$('title').text(title + ' | Haiku Kitchen');
+	$('#pageTitle h2').text(title);
+	$('#pageTitle p').text(description);
 }
 
+/**
+  * Fills the page's contents with an error message.
+  * @param {Object|undefined} err The `jQuery.ajax` `err` object, or `undefined`.
+  */
 function pageLoadingFailed(err) {
 	if (err && err.status == 404)
 		setPageTitle('404 Not Found', 'We can’t find that page! <i class="fa fa-frown-o"></i>');
@@ -41,6 +61,12 @@ function pageLoadingFailed(err) {
 	showContents();
 }
 
+/**
+  * Runs an AJAX GET and calls a function with it as a parameter. If the page
+  *   cannot be fetched, it calls {@link pageLoadingFailed} instead.
+  * @param {string} pageUrl The URL of the page to fetch.
+  * @param {function} func The function to call with the fetched page.
+  */
 function fetchPageAndCall(pageUrl, func) {
 	$.ajax(pageUrl, {dataType: 'text'})
 		.done(function (data) {
@@ -49,12 +75,21 @@ function fetchPageAndCall(pageUrl, func) {
 		.fail(pageLoadingFailed);
 }
 
+/**
+  * Performs the necessary operations on the passed homepage data and then
+  *   shows the homepage.
+  * @param {string} data The fetched homepage data.
+  */
 function showHomePage(data) {
 	setPageTitle('Home', '');
 	$('#pageContentsBody').html(data);
 	showContents();
 }
 
+/**
+  * Generates the Recipes page and shows it.
+  * @param {string} data The fetched recipes pagedata.
+  */
 function showRecipesPage(pageData) {
 	$.ajax('/api/recipes')
 		.done(function (data) {
@@ -73,8 +108,8 @@ function showRecipesPage(pageData) {
 				else
 					html += '<i class="fa fa-question-circle"></i><span>?</span>';
 				html += "</td>";
-				for (var a in kArchitecture) {
-					var arch = kArchitecture[a];
+				for (var a in kArchitectures) {
+					var arch = kArchitectures[a];
 					html += "<td>";
 					if (arch in data[i] && data[i][arch])
 						html += '<a href="' + data[i][arch] + '"><i class="fa fa-archive"></i></a>';
@@ -93,6 +128,10 @@ function showRecipesPage(pageData) {
 		.fail(pageLoadingFailed);
 }
 
+/**
+  * Generates the Builders page and shows it.
+  * @param {string} data The fetched builders pagedata.
+  */
 function showBuildersPage() {
 	$.ajax('/api/builders')
 		.done(function (data) {
@@ -127,6 +166,10 @@ function showBuildersPage() {
 		.fail(pageLoadingFailed);
 }
 
+/**
+  * Generates the Builds page and shows it.
+  * @param {string} data The fetched builds pagedata.
+  */
 function showBuildsPage() {
 	$.ajax('/api/builds')
 		.done(function (data) {
@@ -148,6 +191,11 @@ function showBuildsPage() {
 		.fail(pageLoadingFailed);
 }
 
+/**
+  * Event handler called when one of the `output` links on the Build page
+  *   is clicked.
+  * @param {Object} e The `onclick` event object.
+  */
 function buildOutput(e) {
 	e.preventDefault();
 	var li = $(e.target.parentNode);
@@ -157,6 +205,11 @@ function buildOutput(e) {
 	else
 		$(e.target).html('output');
 }
+global.buildOutput = buildOutput;
+/**
+  * Generates the Build page and shows it.
+  * @param {string} pageData The fetched builds pagedata.
+  */
 function showBuildPage(pageData) {
 	$.ajax('/api/build/' + /[^/]*$/.exec(window.location.hash)[0])
 		.done(function (data) {
@@ -224,6 +277,11 @@ function showBuildPage(pageData) {
 }
 
 var currentHash = '';
+/**
+  * Navigates to the page currently specified by `window.location.hash`.
+  * @param {bool} force Whether to navigate anyway even if the current hash
+  *   is identical to the previous one.
+  */
 function navigate(force) {
 	if (currentHash == window.location.hash && !force)
 		return;
@@ -271,3 +329,7 @@ $(function () {
 	$.timeago.settings.allowFuture = true;
 	navigate(true);
 });
+
+};
+webApp();
+

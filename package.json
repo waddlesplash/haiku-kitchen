@@ -18,5 +18,8 @@
     "glob": "^5.0.10",
     "minimist": "^1.1.1",
     "shelljs": "^0.5.1"
+  },
+  "devDependencies": {
+    "jsdoc": "^3.3.1"
   }
 }

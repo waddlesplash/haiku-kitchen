@@ -37,7 +37,10 @@ var builderManager = global.builderManager = new BuilderManager(),
 	buildManager = global.buildManager = new BuildManager(builderManager);
 timers.setInterval(builderManager.updateAllBuilders, 240 * 60 * 1000);
 
-// find recipes that need to be linted & create a build if there are some
+/**
+  * Creates a build to lint the specified recipes.
+  * @param {array} recipes The recipes to be linted.
+  */
 function createJobToLintRecipes(recipes) {
 	var build = {
 		description: 'lint unlinted recipes',
@@ -59,6 +62,7 @@ function createJobToLintRecipes(recipes) {
 	}
 	buildManager.addBuild(build);
 }
+// find recipes that need to be linted & create a build if there are some
 var recipesToLint = [];
 for (var i in portsTree.recipes) {
 	if (!('lint' in portsTree.recipes[i]))

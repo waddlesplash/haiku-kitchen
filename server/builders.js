@@ -14,11 +14,28 @@ if (!fs.existsSync('data/builders.json')) {
 	process.exit(1);
 }
 
+/**
+  * @class
+  * @description Creates a new Builder object.
+  *
+  * @param {BuilderManager} builderManager The BuilderManager.
+  * @param {string} name The name of this builder.
+  * @param {Object} data The data from the `builders.json` file for this builder.
+  */
 function Builder(builderManager, name, data) {
 	this._socket = null;
 	this._data = data;
 	this._name = name;
 
+	/**
+	  * @public
+	  * @memberof! Builder.prototype
+	  * @description Sets the status to the specified `newStatus` if `newStatus`
+	  *   is a legal status to change to, and returns the new status.
+	  * @param {string|undefined} newStatus The status to update (or undefined to
+	  *   keep the current status).
+	  * @returns {string} The current status.
+	  */
 	this.status = function (newStatus) {
 		if (newStatus != undefined && this._data.status != 'broken')
 			return this._data.status = newStatus;
@@ -28,6 +45,17 @@ function Builder(builderManager, name, data) {
 
 	this._runningCommands = {};
 	this._nextCommandId = 0;
+	/**
+	  * @public
+	  * @memberof! Builder.prototype
+	  * @description Runs the specified command on the builder and returns
+	  *   result via the callback.
+	  * @param {string} command The shell command to run on the builder.
+	  * @param {function|undefined} callback The callback to call when the
+	  *   command finishes. The callback will be passed two arguments: exitcode
+	  *   (the exitcode of the command, an `int`) and output (the combined
+	  *   `stdout` and `stderr` of the command, a `string`).
+	  */
 	this.runCommand = function (command, callback) {
 		var cmdId = 'cmd' + this._nextCommandId;
 		this._nextCommandId++;
@@ -37,10 +65,22 @@ function Builder(builderManager, name, data) {
 		this._sendMessage({what: 'command', replyWith: cmdId, command: command});
 	};
 
+	/**
+	  * @private
+	  * @memberof! Builder.prototype
+	  * @description Sends the specified JSON message to the builder.
+	  * @param {Object} object The object to stringify and send.
+	  */
 	this._sendMessage = function (object) {
 		this._socket.write(JSON.stringify(object) + '\n');
 	};
 
+	/**
+	  * @private
+	  * @memberof! Builder.prototype
+	  * @description Handles the passed message from the builder.
+	  * @param {Object} msg The message to handle.
+	  */
 	this._handleMessage = function (msg) {
 		if (msg.what.indexOf('cmd') == 0) {
 			if (!(msg.what in this._runningCommands)) {
@@ -99,6 +139,14 @@ function Builder(builderManager, name, data) {
 			break;
 		}
 	};
+	/**
+	  * @private
+	  * @memberof! Builder.prototype
+	  * @description Called by the BuilderManager as soon as the builder
+	  *   authenticates. Attaches the necessary event handlers to the socket
+	  *   for managing incoming messages and state changes.
+	  * @param {socket} sock The socket for the authenticated builder.
+	  */
 	this._authenticated = function (sock) {
 		this._socket = sock;
 
@@ -140,6 +188,14 @@ function Builder(builderManager, name, data) {
 	};
 }
 
+/**
+  * @class BuilderManager
+  * @description Instatiates a new BuilderManager object.
+  *
+  * There should only be one instance of BuilderManager running on one
+  * machine at any given time, as it assumes complete control of the TCP
+  * port `42458`.
+  */
 module.exports = function () {
 	var thisThis = this;
 
@@ -150,6 +206,13 @@ module.exports = function () {
 			this.builders[name] = new Builder(this, name, buildersData[name]);
 	}
 
+	/**
+	  * @public
+	  * @memberof! BuilderManager.prototype
+	  * @description Runs `pkgman full-sync -y` on all builders to update
+	  *   them. If one or more of the builders fail to update, it marks them
+	  *   as broken.
+	  */
 	this.updateAllBuilders = function () {
 		log('updating builders');
 		var cmd = 'pkgman full-sync -y';
@@ -163,6 +226,16 @@ module.exports = function () {
 		}
 	};
 
+	/**
+	  * @private
+	  * @memberof! BuilderManager.prototype
+	  * @description Updates the HaikuPorts and HaikuPorter trees on the specified
+	  *   builder via `git pull`. If one or more of the trees fail to update, the
+	  *   builder is marked as broken.
+	  * @param {string} builderName The name of the builder to update the trees on.
+	  * @param {function|undefined} callback The callback to call after updating
+	  *   the trees.
+	  */
 	this._updateHaikuportsTreeOn = function (builderName, callback) {
 		var builder = this.builders[builderName];
 		if (builder.status() != 'online')
@@ -173,14 +246,22 @@ module.exports = function () {
 		builder.runCommand(cmd, function (exitcode, output) {
 			if (exitcode == 0) {
 				builder.status('online');
-				if (callback != undefined)
-					callback();
 			} else {
 				log('git-pull on builder %s failed: %s', builderName, output.trim());
 				builder.status('broken');
 			}
+			if (callback != undefined)
+				callback();
 		});
 	};
+	/**
+	  * @public
+	  * @memberof! BuilderManager.prototype
+	  * @description Updates the HaikuPorts and HaikuPorter trees on all
+	  *   currently connected builders.
+	  * @param {function|undefined} callback The callback to call after all
+	  *   builders are finished updating.
+	  */
 	this.updateAllHaikuportsTrees = function (callback) {
 		var buildersToUpdate = 0, updated = 0;
 		for (var i in thisThis._builderSockets) {
@@ -197,6 +278,14 @@ module.exports = function () {
 				callback();
 		}
 	};
+	/**
+	  * @private
+	  * @memberof! BuilderManager.prototype
+	  * @description Ensures there are HaikuPorts and HaikuPorter trees
+	  *   set up on the specified builder.
+	  * @param {string} builderName The name of the builder to verify
+	  *   that there are trees on.
+	  */
 	this._ensureHaikuportsTreeOn = function (builderName) {
 		function treeIsReady() {
 			log('haikuporter/haikuports clone/pull successful on %s', builderName);
@@ -250,6 +339,14 @@ module.exports = function () {
 		thisThis.builders[builderName].runCommand('ln -s ~/haikuporter/haikuporter haikuporter');
 	};
 
+	/**
+	  * @public
+	  * @memberof! BuilderManager.prototype
+	  * @description Allows the caller to specify a callback that will be
+	  *   called when a builder authenticates. The callback will be passed
+	  *   one argument: a string containing the builder's name.
+	  * @param {function} callback The callback to call when a builder connects.
+	  */
 	this.onBuilderConnected = function (callback) {
 		this._builderConnectedCallback = callback;
 	};

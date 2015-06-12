@@ -10,16 +10,36 @@ var log = require('debug')('kitchen:portstree'), fs = require('fs'),
 	shell = require('shelljs'), zlib = require('zlib'), glob = require('glob'),
 	Recipe = require('./recipe.js');
 
-/*! This manages the HaikuPorts tree that Kitchen uses. */
-
 if (!shell.which('git')) {
 	log('FATAL: git must be installed.');
 	process.exit(2);
 }
 
+/**
+  * @class PortsTree
+  * @description Instatiates a new PortsTree object.
+  *
+  * There should only be one instance of PortsTree running on one
+  * machine at any given time, as it assumes complete control of a
+  * ports tree stored in `cache/haikuports`.
+  *
+  * PortsTree does not schedule any tasks, it leaves that up to the
+  * caller to do. Certain functions inside this object are static
+  * and thus can be connected to timer events.
+  */
 module.exports = function () {
 	var thisThis = this;
 
+	/**
+	  * @private
+	  * @memberof! PortsTree.prototype
+	  * @description Updates the "client cache".
+	  *
+	  * {@link Recipe} objects load and store more data than the web
+	  * app (and whatever other consumers) need access to, and accessing
+	  * the list on each request would be too cycle-costly, so instead,
+	  * a gzip-compressed in-memory cache is kept of this information.
+	  */
 	this._updateClientCache = function () {
 		var newClientRecipes = [];
 		for (var i in this.recipes) {
@@ -42,6 +62,17 @@ module.exports = function () {
 			thisThis.clientRecipes = res;
 		});
 	};
+	/**
+	  * @private
+	  * @memberof! PortsTree.prototype
+	  * @description Updates the in-memory cache for the specified **files**
+	  *   (not recipes!).
+	  *
+	  *   This function will create new {@link Recipe} objects and replace the
+	  *   old ones with them for the specified files. It will also call
+	  *   {@link PortsTree#_updateClientCache}.
+	  * @param {array} files The list of files to update.
+	  */
 	this._updateCacheFor = function (files) {
 		log('updating %d entries...', files.length);
 		for (var i in files) {
@@ -51,10 +82,22 @@ module.exports = function () {
 		this._updateClientCache();
 		log('recipe metadata update complete.');
 	};
+	/**
+	  * @private
+	  * @memberof! PortsTree.prototype
+	  * @description Updates the value of `this._HEAD` (the SHA1 of the current
+	  *   HaikuPorts commit).
+	  */
 	this._updateHEAD = function () {
 		this._HEAD = shell.exec('cd cache/haikuports && git rev-parse HEAD', {silent: true})
 				.output.trim();
 	};
+	/**
+	  * @private
+	  * @memberof! PortsTree.prototype
+	  * @description Scraps the in-memory caches and rebuilds them using the
+	  *   current HaikuPorts tree.
+	  */
 	this._completeCacheRebuild = function () {
 		this.recipes = {};
 		this._updateCacheFor(glob.sync('cache/haikuports/*-*/*/*.recipe'));
@@ -62,6 +105,12 @@ module.exports = function () {
 		this._writeCache();
 	};
 
+	/**
+	  * @private
+	  * @memberof! PortsTree.prototype
+	  * @description Deletes the on-disk *and* in-memory caches and recreates
+	  *   them from scratch.
+	  */
 	this._createCache = function () {
 		log('creating cache from scratch...');
 		shell.rm('-rf', 'cache');
@@ -75,6 +124,12 @@ module.exports = function () {
 		}
 		this._completeCacheRebuild();
 	};
+	/**
+	  * @private
+	  * @memberof! PortsTree.prototype
+	  * @description Saves the in-memory recipe cache (**NOT** the in-memory
+	  *   client/web cache) and `this._HEAD` to disk in JSON format.
+	  */
 	this._writeCache = function () {
 		var recipesStr = JSON.stringify(this.recipes);
 		var headStr = JSON.stringify(this._HEAD);
@@ -112,9 +167,24 @@ module.exports = function () {
 		log('cache created successfully.');
 	}
 
+	/**
+	  * @public
+	  * @memberof! PortsTree.prototype
+	  * @description Allows the caller to specify a callback that will be
+	  *   called when the HaikuPorts tree changes. The callback will be passed
+	  *   one argument: an array containing the versioned-names of the new and
+	  *   changed recipes (**NOT** deleted recipes).
+	  * @param {function} callback The callback to call when the tree changes.
+	  */
 	this.onRecipesChanged = function (callback) {
 		this._recipesChangedCallback = callback;
 	};
+	/**
+	  * @public
+	  * @memberof! PortsTree
+	  * @description Runs `git pull` to check for changes in the HaikuPorts
+	  *   tree, performing any cache updates or rebuilds needed.
+	  */
 	this.update = function () {
 		log('running git-pull...');
 		shell.exec('cd cache/haikuports && git pull --ff-only', {silent: true}, function (code, output) {
