@@ -7,7 +7,7 @@
  */
 
 var log = require('debug')('kitchen:index'), fs = require('fs'),
-	PortsTree = require('./portstree.js'), BuildManager = require('./builds.js'),
+	PortsTree = require('./portstree.js'), BuildsManager = require('./builds.js'),
 	BuilderManager = require('./builders.js'), timers = require('timers'),
 	zlib = require('zlib');
 
@@ -34,7 +34,7 @@ timers.setInterval(portsTree.update, 10 * 60 * 1000);
 
 /*! --------------------- builds/builders --------------------- */
 var builderManager = global.builderManager = new BuilderManager(),
-	buildManager = global.buildManager = new BuildManager(builderManager);
+	buildsManager = global.buildsManager = new BuildsManager(builderManager);
 timers.setInterval(builderManager.updateAllBuilders, 240 * 60 * 1000);
 
 /**
@@ -60,7 +60,7 @@ function createJobToLintRecipes(recipes) {
 	for (var i in recipes) {
 		build.steps.push({command: 'haikuporter --lint ' + recipes[i]});
 	}
-	buildManager.addBuild(build);
+	buildsManager.addBuild(build);
 }
 // find recipes that need to be linted & create a build if there are some
 var recipesToLint = [];
@@ -100,10 +100,10 @@ app.get('/api/builders', function (request, response) {
 });
 app.get('/api/builds', function (request, response) {
 	response.writeHead(200, {'Content-Type': 'application/json'});
-	response.end(JSON.stringify(buildManager.buildsSummary()));
+	response.end(JSON.stringify(buildsManager.buildsSummary()));
 });
 app.get('/api/build/*', function (request, response) {
-	var b = /[^/]*$/.exec(request.url)[0], build = buildManager.builds()[b];
+	var b = /[^/]*$/.exec(request.url)[0], build = buildsManager.builds()[b];
 	if (build == undefined) {
 		response.writeHead(404, {'Content-Type': 'text/plain'});
 		response.end('404 File Not Found');

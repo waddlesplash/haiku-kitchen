@@ -184,6 +184,17 @@ module.exports = function () {
 	  * @memberof! PortsTree
 	  * @description Runs `git pull` to check for changes in the HaikuPorts
 	  *   tree, performing any cache updates or rebuilds needed.
+	  *
+	  * When the `git pull` command exits, it checks the output and exitcode
+	  * to see if it failed or succedeed. If it failed, it assumes something
+	  * in the tree is corrupt, deletes the cache and rebuilds it (via
+	  * `_createCache`). If it succeeded but it finds "Already up-to-date."
+	  * in the output, then it assumes the cache does not need to be updated
+	  * and exits early. Otherwise, it runs `git diff <oldhead>..HEAD --numstat`
+	  * to get a machine-friendly diffstat of the differences before and after
+	  * the pull, and attempts to use this to perform an incremental cache
+	  * update. If the incremental update fails for some reason, it deletes
+	  * and recreates the cache.
 	  */
 	this.update = function () {
 		log('running git-pull...');
