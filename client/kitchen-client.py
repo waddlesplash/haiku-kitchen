@@ -30,7 +30,9 @@ with open (confFilename, 'r') as confFile:
 		print "Error: Your conf file is invalid JSON (filename: {0})".format(confFilename)
 		sys.exit(1)
 
+print "Connecting to {0}...".format(conf['ip'])
 sock = socket.socket()
+sock.setblocking(1)
 sock.connect((conf['ip'], 42458))
 
 def sendJSON(obj):
@@ -39,7 +41,6 @@ def sendJSON(obj):
 
 sock = ssl.wrap_socket(sock, ssl_version = ssl.PROTOCOL_TLSv1,
 					   cert_reqs = ssl.CERT_NONE)
-sock.setblocking(1)
 
 authMsg = {'what': 'auth', 'name': conf['name'], 'key': conf['key']}
 sock.recv(1) # wait until we recieve the first newline
