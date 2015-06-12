@@ -87,11 +87,11 @@ app.get('/api/builders', function (request, response) {
 	for (var i in builderManager.builders) {
 		var builder = builderManager.builders[i];
 		respJson[i] = {
-			owner: builder._data.owner,
+			owner: builder.data.owner,
 			hrev: builder.hrev,
 			cores: builder.cores,
-			architecture: builder._data.architecture,
-			flavor: builder._data.flavor,
+			architecture: builder.data.architecture,
+			flavor: builder.data.flavor,
 			status: builder.status()
 		};
 	}
