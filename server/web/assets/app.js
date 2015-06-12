@@ -206,6 +206,7 @@ function buildOutput(e) {
 		$(e.target).html('output');
 }
 global.buildOutput = buildOutput;
+
 /**
   * Generates the Build page and shows it.
   * @param {string} pageData The fetched builds pagedata.
@@ -332,4 +333,3 @@ $(function () {
 
 };
 webApp();
-
