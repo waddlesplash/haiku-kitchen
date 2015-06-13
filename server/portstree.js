@@ -167,6 +167,7 @@ module.exports = function () {
 		log('cache created successfully.');
 	}
 
+	this._recipesChangedCallbacks = [];
 	/**
 	  * @public
 	  * @memberof! PortsTree.prototype
@@ -177,7 +178,7 @@ module.exports = function () {
 	  * @param {function} callback The callback to call when the tree changes.
 	  */
 	this.onRecipesChanged = function (callback) {
-		this._recipesChangedCallback = callback;
+		this._recipesChangedCallbacks.push(callback);
 	};
 	/**
 	  * @public
@@ -259,8 +260,8 @@ module.exports = function () {
 						changedRecipes.push(r);
 						delete thisThis.recipes[r].lint;
 					}
-					if (thisThis._recipesChangedCallback != undefined)
-						thisThis._recipesChangedCallback(changedRecipes);
+					for (var i in thisThis._recipesChangedCallbacks)
+						thisThis._recipesChangedCallbacks[i](changedRecipes);
 					thisThis._updateHEAD();
 					thisThis._writeCache();
 				});

@@ -312,8 +312,8 @@ module.exports = function () {
 				// we can fire the 'builder connected' signal.
 				if (builder.status('busy')) {
 					builder.status('online');
-					if (thisThis._builderConnectedCallback != undefined)
-						thisThis._builderConnectedCallback(builderName);
+					for (var i in thisThis._builderConnectedCallbacks)
+						thisThis._builderConnectedCallbacks[i](builderName);
 				}
 			});
 		}
@@ -356,6 +356,7 @@ module.exports = function () {
 		thisThis.builders[builderName].runCommand('ln -s ~/haikuporter/haikuporter haikuporter');
 	};
 
+	this._builderConnectedCallbacks = [];
 	/**
 	  * @public
 	  * @memberof! BuilderManager.prototype
@@ -365,7 +366,7 @@ module.exports = function () {
 	  * @param {function} callback The callback to call when a builder connects.
 	  */
 	this.onBuilderConnected = function (callback) {
-		this._builderConnectedCallback = callback;
+		this._builderConnectedCallbacks.push(callback);
 	};
 
 	var options = {
