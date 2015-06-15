@@ -46,7 +46,7 @@ function showContents() {
 function setPageTitle(title, description) {
 	$('title').text(title + ' | Haiku Kitchen');
 	$('#pageTitle h2').text(title);
-	$('#pageTitle p').text(description);
+	$('#pageTitle p').html(description);
 }
 
 /**
