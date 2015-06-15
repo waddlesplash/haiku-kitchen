@@ -9,7 +9,7 @@
 var log = require('debug')('kitchen:builds'), fs = require('fs');
 
 /** (constant) The number of most recent builds to keep in `builds.json`. */
-var kKeepBuildsCount = 10;
+var kKeepBuildsCount = 100;
 
 /**
   * @class BuildsManager
