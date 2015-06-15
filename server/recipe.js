@@ -59,7 +59,7 @@ module.exports = function (filepath) {
 				if (variables[v].indexOf('PROVIDES') === 0)
 					this.provides.push.apply(this.provides, str.trim().split(/\n+\t*/g));
 				else if (variables[v].indexOf('REQUIRES') === 0)
-					this.requires.push.apply(this.requires, str.trim().split(/\n+/g));
+					this.requires.push.apply(this.requires, str.trim().split(/\n+\t*/g));
 				else if (variables[v] == 'ARCHITECTURES')
 					this.architectures.push.apply(this.architectures, str.trim().split(/\s+/g));
 				else if (variables[v].indexOf('BUILD') === 0)
