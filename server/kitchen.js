@@ -16,6 +16,8 @@ if (argv['help'] || process.argv.length < 3) {
 	console.log('Commands:');
 	console.log('  builder:create --name=[name] --owner=[owner]\tCreates a new builder.');
 	console.log('  builder:destroy [name]\tDrops all record of the specified builder.');
+	console.log('');
+	console.log('  config:irc --nick=[nick] --channels="#channel1,#channel2" [--pass=password]');
 
 	process.exit(0);
 }
@@ -89,6 +91,25 @@ case 'builder:destroy':
 	delete builders[name];
 	fs.writeFileSync('data/builders.json', JSON.stringify(builders));
 	console.log("Builder '%s' destroyed successfully.", name);
+	break;
+
+case 'config:irc':
+	if (!('nick' in argv)) {
+		console.error("'config:irc' requires the 'nick' option.");
+		process.exit(1);
+	}
+	if (!('channels' in argv)) {
+		console.error("'config:irc' requires the 'channels' option.");
+		process.exit(1);
+	}
+	var ircConfig = {
+		nick: argv.nick,
+		channels: argv.channels.split(',')
+	};
+	if ('pass' in argv) {
+		ircConfig.password = argv.pass;
+	}
+	fs.writeFileSync('data/irc.json', JSON.stringify(ircConfig));
 	break;
 
 default:

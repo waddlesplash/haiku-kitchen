@@ -9,7 +9,7 @@
 var log = require('debug')('kitchen:index'), fs = require('fs'),
 	PortsTree = require('./portstree.js'), BuildsManager = require('./builds.js'),
 	BuilderManager = require('./builders.js'), timers = require('timers'),
-	zlib = require('zlib');
+	zlib = require('zlib'), IRC = require('internet-relay-chat');
 
 var argv = require('minimist')(process.argv.slice(2));
 if (argv['help']) {
@@ -37,6 +37,16 @@ var builderManager = global.builderManager = new BuilderManager(),
 	buildsManager = global.buildsManager = new BuildsManager(builderManager);
 timers.setInterval(builderManager.updateAllBuilders, 240 * 60 * 1000);
 
+buildsManager.onBuildFinished(function (build) {
+	if (build.status != 'succeed2ed') {
+		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "')" +
+			" \u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black +
+			IRC.colors.bold + 'FAILED' + IRC.colors.reset + ' on step ' +
+			(build.curStep + 1) + ' out of ' + build.steps.length +
+			'. Someone please investigate!');
+	}
+});
+
 /**
   * Creates a build to lint the specified recipes.
   * @param {array} recipes The recipes to be linted.
@@ -50,7 +60,7 @@ function createJobToLintRecipes(recipes) {
 		steps: [],
 		handleResult: function (step, exitcode, output) {
 			portsTree.recipes[step.split(' ')[2]].lint = (exitcode == 0);
-			return true;
+			return false;
 		},
 		onSuccess: function () {
 			portsTree._updateClientCache();
@@ -62,19 +72,28 @@ function createJobToLintRecipes(recipes) {
 	}
 	buildsManager.addBuild(build);
 }
-// find recipes that need to be linted & create a build if there are some
-var recipesToLint = [];
-for (var i in portsTree.recipes) {
-	if (!('lint' in portsTree.recipes[i]))
-		recipesToLint.push(i);
+var needToCreateJob = true;
+for (var i in buildsManager.builds()) {
+	var build = buildsManager.builds()[i]
+	if (build.description == 'lint unlinted recipes'
+		&& build.status == 'pending')
+		needToCreateJob = false;
 }
-if (recipesToLint.length > 0)
-	createJobToLintRecipes(recipesToLint);
-portsTree.onRecipesChanged(function (recipes) {
-	builderManager.updateAllHaikuportsTrees(function () {
-		createJobToLintRecipes(recipes);
+if (needToCreateJob) {
+	// find recipes that need to be linted & create a build if there are some
+	var recipesToLint = [];
+	for (var i in portsTree.recipes) {
+		if (!('lint' in portsTree.recipes[i]))
+			recipesToLint.push(i);
+	}
+	if (recipesToLint.length > 0)
+		createJobToLintRecipes(recipesToLint);
+	portsTree.onRecipesChanged(function (recipes) {
+		builderManager.updateAllHaikuportsTrees(function () {
+			createJobToLintRecipes(recipes);
+		});
 	});
-});
+}
 
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = global.app = express();
@@ -127,3 +146,41 @@ app.get('/api/build/*', function (request, response) {
 });
 app.use(express.static('web'));
 app.listen(argv['port']);
+
+/*! --------------------------- IRC --------------------------- */
+var bot, ircConfig, toPost = [];
+if (fs.existsSync('data/irc.json')) {
+	ircConfig = JSON.parse(fs.readFileSync('data/irc.json', {encoding: 'UTF-8'}));
+	bot = new IRC({
+		server: 'chat.freenode.net',
+		port: 6697,
+		secure: true,
+		username: 'walter',
+		realname: 'Haiku Kitchen Bot',
+		nick: ircConfig.nick
+	});
+
+	bot.on('registered', function () {
+		log('IRC bot connected successfully.');
+		if ('password' in ircConfig)
+			bot.message('NickServ', 'identify ' + ircConfig.password);
+		for (var i in ircConfig.channels)
+			bot.join(ircConfig.channels[i]);
+		for (var i in toPost) {
+			global.ircNotify(toPost[i]);
+			delete toPost[i];
+		}
+	});
+	bot.on('ctcp-version', function (line) {
+		bot.ctcpReply(line.sender.nick, 'VERSION npm.internet-relay-chat + Kitchen');
+	});
+	bot.connect();
+}
+global.ircNotify = function (say) {
+	if (!bot || !bot.registered) {
+		toPost.push(say);
+		return;
+	}
+	for (var i in ircConfig.channels)
+		bot.message(ircConfig.channels[i], say);
+}

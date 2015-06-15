@@ -53,6 +53,19 @@ module.exports = function (builderManager) {
 	};
 	this._writeBuilds();
 
+	this._buildFinishedCallbacks = [];
+	/**
+	  * @public
+	  * @memberof! BuildsManager.prototype
+	  * @description Allows the caller to specify a callback that will be
+	  *   called when a build finishes. The callback will be passed the build
+	  *   object.
+	  * @param {function} callback The callback to call when a build finishes.
+	  */
+	this.onBuildFinished = function (callback) {
+		this._buildFinishedCallbacks.push(callback);
+	};
+
 	/**
 	  * @private
 	  * @memberof! BuildsManager.prototype
@@ -67,6 +80,8 @@ module.exports = function (builderManager) {
 		build.startTime = build.lastTime;
 		build.lastTime = new Date();
 		this._writeBuilds();
+		for (var i in thisThis._buildFinishedCallbacks)
+			thisThis._buildFinishedCallbacks[i](build);
 		this._tryRunBuilds();
 	};
 	/**
