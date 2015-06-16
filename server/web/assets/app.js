@@ -221,9 +221,12 @@ function showBuildPage(pageData) {
 			$("#buildStatus").addClass('status-' + data.status);
 			$("#lastTime").text($.timeago(data.lastTime));
 
-			if (data.status == 'running') {
-				$("#duration").hide();
+			if (data.status == 'running')
 				$("#builtOrBuilding").text('building on');
+			if (data.status != 'failed' &&
+				data.status != 'succeeded') {
+				$("#duration").hide();
+				$("#builtOrBuilding").hide();
 			} else {
 				var duration = (new Date(data.lastTime).getTime() -
 						new Date(data.startTime).getTime()), durStr = '',
