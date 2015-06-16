@@ -243,11 +243,9 @@ function showBuildPage(pageData) {
 
 			for (var i in data.steps) {
 				var status, step = data.steps[i];
-				var didThisStep = false;
-				if (data.status == 'succeeded' || data.curStep > i) {
+				if (data.status == 'succeeded' || data.curStep > i)
 					status = 'succeeded';
-					didThisStep = true;
-				} else if (data.curStep == i) {
+				else if (data.curStep == i) {
 					if (data.status == 'failed')
 						status = 'failed';
 					else
@@ -256,7 +254,7 @@ function showBuildPage(pageData) {
 					status = 'pending';
 				var item = '<li class="status-' + status + '">';
 				item += step.command;
-				if (didThisStep) {
+				if ('output' in step) {
 					item += '<a href="#" onclick="buildOutput(event);">output</a>';
 					item += '<div class="textarea">' +
 						step.output
