@@ -37,8 +37,14 @@ var builderManager = global.builderManager = new BuilderManager(),
 	buildsManager = global.buildsManager = new BuildsManager(builderManager);
 timers.setInterval(builderManager.updateAllBuilders, 240 * 60 * 1000);
 
+builderManager.onBuilderBroken(function (name) {
+	ircNotify("Oh no! Builder '" + name +
+		"' \u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black +
+		IRC.colors.bold + 'BROKE' + IRC.colors.reset + '. Somebody contact "' +
+		builderManager.builders[name].data.owner + '" so they can fix it!');
+});
 buildsManager.onBuildFinished(function (build) {
-	if (build.status != 'succeed2ed') {
+	if (build.status != 'succeeded') {
 		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "')" +
 			" \u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black +
 			IRC.colors.bold + 'FAILED' + IRC.colors.reset + ' on step ' +
@@ -59,8 +65,10 @@ function createJobToLintRecipes(recipes) {
 		lastTime: new Date(),
 		steps: [],
 		handleResult: function (step, exitcode, output) {
+			if (exitcode != 0 && exitcode != 1)
+				return false;
 			portsTree.recipes[step.split(' ')[2]].lint = (exitcode == 0);
-			return false;
+			return true;
 		},
 		onSuccess: function () {
 			portsTree._updateClientCache();

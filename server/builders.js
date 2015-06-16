@@ -54,8 +54,13 @@ function Builder(builderManager, name, data) {
 	  * @returns {string} The current status.
 	  */
 	this.status = function (newStatus) {
-		if (newStatus != undefined && this._status != 'broken')
+		if (newStatus != undefined && this._status != 'broken') {
+			if (newStatus == 'broken') {
+				for (var i in builderManager._builderBrokenCallbacks)
+					builderManager._builderBrokenCallbacks[i](this.name);
+			}
 			return this._status = newStatus;
+		}
 		return this._status;
 	};
 	this.status('offline');
@@ -369,6 +374,20 @@ module.exports = function () {
 		this._builderConnectedCallbacks.push(callback);
 	};
 
+	this._builderBrokenCallbacks = [];
+	/**
+	  * @public
+	  * @memberof! BuilderManager.prototype
+	  * @description Allows the caller to specify a callback that will be
+	  *   called when a builder is marked as 'broken'. The callback will be
+	  *   passed one argument: a string containing the builder's name.
+	  * @param {function} callback The callback to call when a builder is
+	  *   marked as broken.
+	  */
+	this.onBuilderBroken = function (callback) {
+		this._builderBrokenCallbacks.push(callback);
+	};
+
 	var options = {
 		key: fs.readFileSync('data/server.key'),
 		cert: fs.readFileSync('data/server.crt')
@@ -392,6 +411,11 @@ module.exports = function () {
 			if (!(msg.name in thisThis.builders)) {
 				log("AUTHFAIL: builder's name is '%s' but no known builders " +
 					"with that name.", msg.name);
+				sock.destroy();
+				return;
+			}
+			if (thisThis.builders[msg.name]._socket != null) {
+				log("AUTHFAIL: builder %s is already connected?!", msg.name);
 				sock.destroy();
 				return;
 			}
