@@ -94,6 +94,10 @@ function Builder(builderManager, name, data) {
 	  * @param {Object} object The object to stringify and send.
 	  */
 	this._sendMessage = function (object) {
+		if (this._socket == null) {
+			log('WARN: attempt to write to null socket (builder %s).', this.name);
+			return;
+		}
 		this._socket.write(JSON.stringify(object) + '\n');
 	};
 
@@ -137,6 +141,7 @@ function Builder(builderManager, name, data) {
 				this.data.flavor = 'pure';
 			else
 				this.data.flavor = 'unknown';
+			this.status('online');
 			break;
 
 		case 'updateResult':
@@ -145,7 +150,7 @@ function Builder(builderManager, name, data) {
 				this.status('broken');
 			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
 				// Already up-to-date.
-				this.status('online');
+				break;
 			} else {
 				log('update on builder %s succeeded, rebooting', this.name);
 				this._sendMessage({what: 'restart'});
