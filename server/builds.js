@@ -100,6 +100,13 @@ module.exports = function (builderManager) {
 
 		build.curStep = 0;
 		function commandFinished(exitcode, output) {
+			if (exitcode == 999999999 && output == 'Builder disconnected') {
+				build.status = 'failed';
+				thisThis._buildFinished(builderName, build);
+				log('build #%d failed because the builder disconnected', build.id);
+				return;
+			}
+
 			var step = build.steps[build.curStep];
 			step.exitcode = exitcode;
 			step.output = output.trim();

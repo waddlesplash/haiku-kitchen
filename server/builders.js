@@ -206,6 +206,12 @@ function Builder(builderManager, name, data) {
 			thisThis._status = 'offline';
 			delete thisThis.hrev;
 			delete thisThis.cores;
+			for (var i in thisThis._runningCommands) {
+				var callback = thisThis._runningCommands[i].callback;
+				if (callback !== undefined)
+					callback(999999999, 'Builder disconnected');
+				delete thisThis._runningCommands[i];
+			}
 		});
 	};
 }
