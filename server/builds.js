@@ -51,7 +51,6 @@ module.exports = function (builderManager) {
 		}
 		fs.writeFile('data/builds.json', JSON.stringify(builds));
 	};
-	this._writeBuilds();
 
 	this._buildFinishedCallbacks = [];
 	/**
