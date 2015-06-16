@@ -36,8 +36,10 @@ if (!('port' in argv)) {
 log("starting up");
 
 /*! ------------------------- PIDfile ------------------------- */
-global.pid = require('npid').create('data/kitchen.pid');
-global.pid.removeOnExit();
+if (!('ignorepid' in argv)) {
+	global.pid = require('npid').create('data/kitchen.pid');
+	global.pid.removeOnExit();
+}
 
 /*! --------------------- haikuports tree --------------------- */
 var portsTree = global.portsTree = new PortsTree();
@@ -69,9 +71,9 @@ buildsManager.onBuildFinished(function (build) {
   * Creates a build to lint the specified recipes.
   * @param {array} recipes The recipes to be linted.
   */
-function createJobToLintRecipes(recipes) {
+function createJobToLintRecipes(recipes, desc) {
 	var build = {
-		description: 'lint unlinted recipes',
+		description: desc ? desc : 'lint unlinted recipes',
 		noDependencyTracking: true,
 		architecture: 'any',
 		lastTime: new Date(),
@@ -178,6 +180,96 @@ if (fs.existsSync('data/irc.json')) {
 		username: 'walter',
 		realname: 'Haiku Kitchen Bot',
 		nick: ircConfig.nick
+	});
+
+	var pendingApprovalRequest = null;
+	function nullifyPendingApprovalRequest() {
+		pendingApprovalRequest = null;
+	}
+	bot.on('message', function (sender, channel, message) {
+		if (message.search(new RegExp(bot.myNick + '\\b')) != 0)
+			return;
+		var isOp = false;
+		for (var nick in bot.channels[channel].users) {
+			if (nick == sender.nick &&
+				bot.channels[channel].users[nick].prefix == '@') {
+				isOp = true;
+				break;
+			}
+		}
+		function reply(msg) {
+			bot.message(channel, sender.nick + ": " + msg);
+		}
+		if (!isOp) {
+			reply("I don't take commands from upstarts like you. :-P");
+			return;
+		}
+
+		var command = message.substr(bot.myNick.length + 1).trim().split(' ');
+		switch (command[0]) {
+		case 'relint':
+			if (pendingApprovalRequest != null) {
+				reply("There's already an approval request pending...");
+				break;
+			}
+			var recipes = [];
+			for (var i = 1; i < command.length; i++) {
+				if (!(command[i] in portsTree.recipes)) {
+					var count = 0;
+					for (var recipe in portsTree.recipes) {
+						if (recipe.indexOf(command[i]) == 0) {
+							recipes.push(recipe);
+							count++;
+						}
+					}
+					if (count == 0) {
+						reply("Uh, what's '" + command[i] + "'? I can't find any recipes " +
+							"matching or starting with that string...");
+						return;
+					}
+				} else
+					recipes.push(command[i]);
+			}
+			pendingApprovalRequest = function () {
+				createJobToLintRecipes(recipes, 'relint specific recipes at request of ' +
+					sender.nick);
+				reply("Build created.");
+				pendingApprovalRequest = null;
+			};
+			if (recipes.length > 14) {
+				reply("OK, but you're going to need another op to approve that.");
+				pendingApprovalRequest = {
+					command: 'relint',
+					recipes: recipes
+				};
+				bot.message(channel, "Hey! Can anyone approve " + sender.nick + "'s " +
+					"request to relint " + recipes.length + " recipes? Tell me 'approve' " +
+					"or 'confirm'.");
+			} else
+				pendingApprovalRequest();
+			timers.setTimeout(nullifyPendingApprovalRequest, 15 * 60 * 1000);
+			break;
+
+		case 'approve':
+		case 'confirm':
+			if (pendingApprovalRequest == null) {
+				reply("There aren't any pending approval requests right now! Maybe " +
+					"the 15-minute timeout was reached?");
+				break;
+			}
+			pendingApprovalRequest();
+			pendingApprovalRequest = null;
+			break;
+
+		case 'lazy':
+			reply("I build hundreds of packages at a moment's notice. I command millions " +
+				"of silicon gates, screaming along at billions of cycles per second.")
+			reply("And you?");
+			break;
+		default:
+			reply("I ain't got a clue what you're talkin' 'bout!");
+			break;
+		}
 	});
 
 	bot.on('registered', function () {
