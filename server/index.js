@@ -6,6 +6,12 @@
  *		Augustin Cavalier <waddlesplash>
  */
 
+// Attempt a graceful shutdown on exceptions
+process.on('uncaughtException', function (err) {
+	console.trace(err);
+	process.exit(999);
+});
+
 var log = require('debug')('kitchen:index'), fs = require('fs'),
 	PortsTree = require('./portstree.js'), BuildsManager = require('./builds.js'),
 	BuilderManager = require('./builders.js'), timers = require('timers'),
