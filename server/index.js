@@ -8,7 +8,9 @@
 
 // Attempt a graceful shutdown on exceptions
 process.on('uncaughtException', function (err) {
-	console.trace(err);
+	console.error(err.stack);
+	if (global.pid)
+		global.pid.remove();
 	process.exit(999);
 });
 
@@ -32,6 +34,10 @@ if (!('port' in argv)) {
 }
 
 log("starting up");
+
+/*! ------------------------- PIDfile ------------------------- */
+global.pid = require('npid').create('data/kitchen.pid');
+global.pid.removeOnExit();
 
 /*! --------------------- haikuports tree --------------------- */
 var portsTree = global.portsTree = new PortsTree();
@@ -191,6 +197,8 @@ if (fs.existsSync('data/irc.json')) {
 	bot.connect();
 }
 global.ircNotify = function (say) {
+	if (!ircConfig)
+		return;
 	if (!bot || !bot.registered) {
 		toPost.push(say);
 		return;
