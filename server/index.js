@@ -238,10 +238,6 @@ if (fs.existsSync('data/irc.json')) {
 			};
 			if (recipes.length > 14) {
 				reply("OK, but you're going to need another op to approve that.");
-				pendingApprovalRequest = {
-					command: 'relint',
-					recipes: recipes
-				};
 				bot.message(channel, "Hey! Can anyone approve " + sender.nick + "'s " +
 					"request to relint " + recipes.length + " recipes? Tell me 'approve' " +
 					"or 'confirm'.");
