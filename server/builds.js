@@ -26,6 +26,20 @@ module.exports = function (builderManager) {
 			{encoding: 'UTF-8'}).id;
 		builds = JSON.parse(fs.readFileSync('data/builds.json'),
 			{encoding: 'UTF-8'});
+		// Remove all pending builds, as we can't use them because they don't
+		// have the callbacks in them
+		for (var i in builds) {
+			if (builds[i].status == 'pending')
+				delete builds[i];
+		}
+		// Reset nextBuildId
+		var highestBuildId = 1;
+		for (var i in builds) {
+			if (builds[i].id > highestBuildId)
+				highestBuildId = builds[i].id;
+		}
+		if (highestBuildId != 1)
+			nextBuildId = highestBuildId + 1;
 	}
 
 	/**
@@ -136,21 +150,30 @@ module.exports = function (builderManager) {
 	  * @description Looks for available builders to run all pending builds on.
 	  */
 	this._tryRunBuilds = function () {
-		var availableBuilders = [];
+		var availableBuilderNames = [];
 		for (var builderName in builderManager.builders) {
 			if (builderManager.builders[builderName].status() == 'online')
-				availableBuilders.push(builderName);
+				availableBuilderNames.push(builderName);
 		}
 
 		for (var i in builds) {
-			if (availableBuilders.length == 0)
+			if (availableBuilderNames.length == 0)
 				return;
 			if (builds[i].status != 'pending')
 				continue;
 			if (builds[i].architecture == 'any') {
-				this._runBuildOn(availableBuilders[0], builds[i]);
-				builderManager.builders[builderName].status('busy');
-				delete availableBuilders[0];
+				this._runBuildOn(availableBuilderNames[0], builds[i]);
+				builderManager.builders[availableBuilderNames[0]].status('busy');
+				delete availableBuilderNames[0];
+			} else {
+				for (var j in availableBuilderNames) {
+					var builder = builderManager.builders[availableBuilderNames[j]];
+					if (builder.data.architecture == builds[i].architecture) {
+						this._runBuildOn(availableBuilderNames[j], builds[i]);
+						builder.status('busy');
+						delete availableBuilderNames[j];
+					}
+				}
 			}
 		}
 	};
@@ -164,10 +187,9 @@ module.exports = function (builderManager) {
 	  */
 	this.addBuild = function (build) {
 		build.id = nextBuildId++;
-		this._writeBuilds();
-
 		build.status = 'pending';
 		builds[build.id] = build;
+		this._writeBuilds();
 		log("build #%d ('%s') created", build.id, build.description);
 		this._tryRunBuilds();
 	};
