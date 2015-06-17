@@ -129,7 +129,7 @@ function Builder(builderManager, name, data) {
 		case 'uname':
 			var uname = msg.output.trim().split(' ');
 			this.hrev = uname[3].substr(4);
-			this.data.architecture = uname[10];
+			this.data.architecture = uname[9];
 			break;
 		case 'archlist':
 			var archlist = msg.output.trim().replace(/\n/g, ' ');
@@ -149,8 +149,16 @@ function Builder(builderManager, name, data) {
 				log('update on builder %s failed, marking it as broken', this.name);
 				this.status('broken');
 			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
-				// Already up-to-date.
-				break;
+				// See if we have the builder metadata, and get it if we don't
+				if (this.data.flavor == undefined) {
+					// fetch builder info
+					this._sendMessage({what: 'getCores'});
+					this._sendMessage({what: 'command', replyWith: 'uname',
+						command: 'uname -a'});
+					this._sendMessage({what: 'command', replyWith: 'archlist',
+						command: 'setarch -l'});
+					builderManager._ensureHaikuportsTreeOn(this.name);
+				}
 			} else {
 				log('update on builder %s succeeded, rebooting', this.name);
 				this._sendMessage({what: 'restart'});
@@ -184,13 +192,6 @@ function Builder(builderManager, name, data) {
 				command: 'hey Tracker quit'});
 			this._sendMessage({what: 'command', replyWith: 'updateResult',
 				command: 'pkgman full-sync -y'});
-			// fetch builder info
-			this._sendMessage({what: 'getCores'});
-			this._sendMessage({what: 'command', replyWith: 'uname',
-				command: 'uname -a'});
-			this._sendMessage({what: 'command', replyWith: 'archlist',
-				command: 'setarch -l'});
-			builderManager._ensureHaikuportsTreeOn(this.name);
 		}
 
 		var thisThis = this, dataBuf = '', data;
