@@ -151,7 +151,7 @@ function showBuildersPage() {
 					html += '<i class="fa fa-plug" style="color:lightgray"></i>';
 				html += '</span>&nbsp;&nbsp;<span><b>owner:</b> ' +
 						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';
-				if (data[i].status == 'online' || data[i].status == 'busy') {
+				if ('hrev' in data[i]) {
 					html += '<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' +
 							data[i].hrev + '">hrev' + data[i].hrev + '</a>, ' +
 						data[i].cores + (data[i].cores > 1 ? ' cores' : ' core') + ', ' +
