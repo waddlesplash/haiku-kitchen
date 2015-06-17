@@ -68,7 +68,7 @@ buildsManager.onBuildFinished(function (build) {
 });
 
 /**
-  * Creates a build to lint the specified recipes.
+  * Creates a job to lint the specified recipes.
   * @param {array} recipes The recipes to be linted.
   */
 function createJobToLintRecipes(recipes, desc) {
@@ -94,14 +94,14 @@ function createJobToLintRecipes(recipes, desc) {
 	}
 	buildsManager.addBuild(build);
 }
-var needToCreateJob = true;
+var needToCreateLintJob = true;
 for (var i in buildsManager.builds()) {
 	var build = buildsManager.builds()[i]
 	if (build.description == 'lint unlinted recipes'
 		&& build.status == 'pending')
-		needToCreateJob = false;
+		needToCreateLintJob = false;
 }
-if (needToCreateJob) {
+if (needToCreateLintJob) {
 	// find recipes that need to be linted & create a build if there are some
 	var recipesToLint = [];
 	for (var i in portsTree.recipes) {
@@ -115,6 +115,30 @@ if (needToCreateJob) {
 			createJobToLintRecipes(recipes);
 		});
 	});
+}
+
+/**
+  * Creates a job to build the specified recipes.
+  * @param {array} recipes The recipes to be linted.
+  */
+function createJobToBuildRecipes(recipes, desc) {
+	var build = {
+		description: desc ? desc : 'build recipes',
+		noDependencyTracking: true, // TODO
+		architecture: 'x86_64', // TODO
+		lastTime: new Date(),
+		steps: [], // TODO: multitask, TODO: -j<NUM>
+		handleResult: function (step, exitcode, output) {
+			return (exitcode == 0);
+		},
+		onSuccess: function () {
+			// TODO: fetch files
+		}
+	};
+	for (var i in recipes) {
+		build.steps.push({command: 'haikuporter --get-dependencies ' + recipes[i]});
+	}
+	buildsManager.addBuild(build);
 }
 
 /*! ------------------------ webserver ------------------------ */
@@ -206,20 +230,24 @@ if (fs.existsSync('data/irc.json')) {
 		}
 
 		var command = message.substr(bot.myNick.length + 1).trim().split(' ');
-		switch (command[0]) {
-		case 'relint':
+		function readRecipesFromCommand(startAtIndex, fetchAllVersions) {
 			if (pendingApprovalRequest != null) {
 				reply("There's already an approval request pending...");
-				break;
+				return;
 			}
 			var recipes = [];
-			for (var i = 1; i < command.length; i++) {
+			for (var i = startAtIndex; i < command.length; i++) {
 				if (!(command[i] in portsTree.recipes)) {
 					var count = 0;
 					for (var recipe in portsTree.recipes) {
 						if (recipe.indexOf(command[i]) == 0) {
-							recipes.push(recipe);
 							count++;
+							if (fetchAllVersions) {
+								recipes.push(recipe);
+							} else {
+								recipes.push(portsTree.recipes[recipe].name);
+								break;
+							}
 						}
 					}
 					if (count == 0) {
@@ -230,6 +258,13 @@ if (fs.existsSync('data/irc.json')) {
 				} else
 					recipes.push(command[i]);
 			}
+			return recipes;
+		}
+		switch (command[0]) {
+		case 'relint':
+			var recipes = readRecipesFromCommand(1);
+			if (!recipes)
+				break;
 			pendingApprovalRequest = function () {
 				createJobToLintRecipes(recipes, 'relint specific recipes at request of ' +
 					sender.nick);
@@ -240,6 +275,25 @@ if (fs.existsSync('data/irc.json')) {
 				reply("OK, but you're going to need another op to approve that.");
 				bot.message(channel, "Hey! Can anyone approve " + sender.nick + "'s " +
 					"request to relint " + recipes.length + " recipes? Tell me 'approve' " +
+					"or 'confirm'.");
+			} else
+				pendingApprovalRequest();
+			timers.setTimeout(nullifyPendingApprovalRequest, 15 * 60 * 1000);
+			break;
+		case 'build':
+			var recipes = readRecipesFromCommand(1);
+			if (!recipes)
+				break;
+			pendingApprovalRequest = function () {
+				createJobToBuildRecipes(recipes, 'build specific recipes at request of ' +
+					sender.nick);
+				reply("Build created.");
+				pendingApprovalRequest = null;
+			};
+			if (recipes.length > 5) {
+				reply("OK, but you're going to need another op to approve that.");
+				bot.message(channel, "Hey! Can anyone approve " + sender.nick + "'s " +
+					"request to (re)build " + recipes.length + " recipes? Tell me 'approve' " +
 					"or 'confirm'.");
 			} else
 				pendingApprovalRequest();
