@@ -223,11 +223,11 @@ function showBuildPage(pageData) {
 
 			if (data.status == 'running')
 				$("#builtOrBuilding").text('building on');
-			if (data.status != 'failed' &&
+			else if (data.status != 'failed' &&
 				data.status != 'succeeded') {
-				$("#duration").hide();
-				$("#builtOrBuilding").hide();
+				$("#builder").hide();
 			} else {
+				$("#duration").show();
 				var duration = (new Date(data.lastTime).getTime() -
 						new Date(data.startTime).getTime()), durStr = '',
 					hours = Math.floor(duration / 1000 / 60 / 60);
@@ -264,7 +264,9 @@ function showBuildPage(pageData) {
 							.replace(/&/g, '&amp;')
 							.replace(/</g, '&lt;')
 							.replace(/>/g, '&gt;')
-							.replace(/\r*\n/g, '<br>') +
+							.replace(/\r*\n/g, '<br>')
+							.replace(/ /g, '&nbsp;')
+							.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;') +
 						'<br><span>Command exited with code ' + step.exitcode + '.</span>' +
 						'</div>';
 				}
