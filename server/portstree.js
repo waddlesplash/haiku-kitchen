@@ -116,7 +116,7 @@ module.exports = function () {
 		shell.rm('-rf', 'cache');
 		shell.mkdir('cache');
 		log('cloning haikuports...');
-		var cmd = 'cd cache && git clone --depth=1 https://bitbucket.org/haikuports/haikuports.git';
+		var cmd = 'cd cache && git clone --depth=1 https://github.com/haikuports/haikuports.git';
 		var res = shell.exec(cmd, {silent: true});
 		if (res.code !== 0) {
 			log('FATAL: clone failed: %s', res.output);
