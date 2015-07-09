@@ -70,6 +70,7 @@ while True:
 									stderr = subprocess.STDOUT)
 			for line in proc.stdout.readlines():
 				reply['output'] += line
+				sys.stdout.write(":: " + line)
 			reply['exitcode'] = proc.wait()
 		elif (msg['what'] == 'getCores'):
 			reply['what'] = 'coreCount'
