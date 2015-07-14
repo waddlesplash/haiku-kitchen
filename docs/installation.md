@@ -8,7 +8,7 @@ The server needs a TLS keypair for communication with the clients. Generate one
 openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -nodes \
   -subj "/C=YourCountry/ST=YourState/L=YourLocation/O=YourName/CN=CommonName"
 ```
-... and place it in the `data` folder alongside `builders.json`.
+... and place them in the `data` folder alongside `builders.json`.
 
 ## Adding Builders
 The `kitchen.js` script is used to manage the server. To create a new builder,
@@ -24,6 +24,12 @@ Builders are destroyed using `kitchen.js`'s `builder:destroy` command. Note
 that only the builder's name, owner and other data contained within
 `builders.json` will be deleted; builds built by the builder you are
 deleting will still reference the builder by name.
+
+## Running (development mode)
+```
+DEBUG=* node index.js --port=8081 --ignorepid
+```
+On Windows, use `set DEBUG=*` on a separate line instead.
 
 ## Deployment
 Make sure to install the `npm` dependencies using `npm install --production`.
