@@ -7,11 +7,14 @@
  */
 
 var log = require('debug')('kitchen:builders'), fs = require('fs'),
-	crypto = require('crypto');
+	path = require('path'), crypto = require('crypto');
 
 if (!fs.existsSync('data/builders.json')) {
 	log('FATAL: no builders configuration file! set one up using kitchen.js.');
 	process.exit(1);
+}
+if (!fs.existsSync('cache/filetransfer')) {
+	fs.mkdirSync('cache/filetransfer');
 }
 
 /**
@@ -59,7 +62,7 @@ function Builder(builderManager, name, data) {
 				for (var i in builderManager._builderBrokenCallbacks)
 					builderManager._builderBrokenCallbacks[i](this.name);
 			}
-			return this._status = newStatus;
+			return (this._status = newStatus);
 		}
 		return this._status;
 	};
@@ -87,6 +90,7 @@ function Builder(builderManager, name, data) {
 		this._sendMessage({what: 'command', replyWith: cmdId, command: command});
 	};
 
+	this._pendingMessages = [];
 	/**
 	  * @private
 	  * @memberof! Builder.prototype
@@ -98,7 +102,47 @@ function Builder(builderManager, name, data) {
 			log('WARN: attempt to write to null socket (builder %s).', this.name);
 			return;
 		}
+		if (this._fileTransfer) {
+			// Queue the message, we're running a file transfer ATM
+			this._pendingMessages.push(object);
+			return;
+		}
 		this._socket.write(JSON.stringify(object) + '\n');
+	};
+	/**
+	  * @private
+	  * @memberof! Builder.prototype
+	  * @description Sends all pending messages to the builder.
+	  */
+	this._sendPendingMessages = function () {
+		for (var i in this._pendingMessages) {
+			this._sendMessage(this._pendingMessages[i]);
+			delete this._pendingMessages[i];
+		}
+	};
+
+	this._fileTransfer = false;
+	this._nextTransferId = 0;
+	/**
+	  * @public
+	  * @memberof! Builder.prototype
+	  * @description Transfers the specified file from the builder to the
+	  *   server.
+	  * @param {string} filePath The path of the file to transfer
+	  * @param {function|undefined} callback The callback to call when the
+	  *   command finishes. The callback will be passed one argument, "err",
+	  *   which will either be undefined or an error.
+	  */
+	this.transferFile = function (filePath, callback) {
+		var ftId = 'ft' + this._nextTransferId;
+		this._nextTransferId++;
+		this._runningCommands[ftId] = {
+			callback: callback,
+			file: filePath,
+			localFile: 'cache/filetransfer/' + path.basename(filePath)
+		};
+		fs.unlink(this._runningCommands[ftId].localFile, function (err) {});
+		this._sendMessage({what: 'transferFile', replyWith: ftId, file: filePath});
 	};
 
 	/**
@@ -108,6 +152,9 @@ function Builder(builderManager, name, data) {
 	  * @param {Object} msg The message to handle.
 	  */
 	this._handleMessage = function (msg) {
+		if (!('what' in msg))
+			return;
+
 		if (msg.what.indexOf('cmd') == 0) {
 			if (!(msg.what in this._runningCommands)) {
 				log('WARN: message returned for pending command that does ' +
@@ -184,6 +231,7 @@ function Builder(builderManager, name, data) {
 	  */
 	this._authenticated = function (sock) {
 		this._socket = sock;
+		var thisThis = this;
 
 		this.status('busy');
 		if (this.status() != 'broken') {
@@ -194,18 +242,74 @@ function Builder(builderManager, name, data) {
 				command: 'pkgman full-sync -y'});
 		}
 
-		var thisThis = this, dataBuf = '', data;
-		sock.on('data', function (dat) {
-			dataBuf += dat.toString();
-			data = dataBuf.split('\n');
-			dataBuf = data[data.length - 1];
-			delete data[data.length - 1];
+		var messageHandler, fileTransferHandler, fileTransferId, dataBuf = '', msgs;
+		function dataHandler(newData) {
+			if (newData === undefined)
+				return;
 
-			for (var i in data) {
-				var msg = JSON.parse(data[i]);
+			dataBuf += newData.toString();
+			var lines = dataBuf.split('\n');
+			dataBuf = lines[lines.length - 1];
+			delete lines[lines.length - 1];
+
+			msgs = [];
+			for (var i in lines) {
+				var json;
+				try {
+					json = JSON.parse(lines[i]);
+				} catch (e) {
+					continue;
+				}
+				msgs[i] = json;
+			}
+		}
+
+		messageHandler = function (dat) {
+			dataHandler(dat);
+			for (var i in msgs) {
+				var msg = msgs[i];
+				if (msg.what == 'transferStarting') {
+					sock.removeAllListeners('data');
+					sock.on('data', fileTransferHandler);
+					this._fileTransfer = true;
+					fileTransferId = msg.id;
+					log("transferring file '%s' from builder '%s'...",
+						thisThis._runningCommands[fileTransferId].file,
+						thisThis.name);
+
+					var newMsgs = [];
+					for (var j = i + 1; j < msgs.length; j++)
+						newMsgs.push(msgs[i]);
+					msgs = newMsgs;
+					fileTransferHandler();
+					break;
+				}
 				thisThis._handleMessage(msg);
 			}
-		});
+		};
+		fileTransferHandler = function (data) {
+			var transferObj = thisThis._runningCommands[fileTransferId];
+			dataHandler(data);
+			for (var i in msgs) {
+				if ('what' in msgs[i]) {
+					sock.removeAllListeners('data');
+					sock.on('data', messageHandler);
+					this._fileTransfer = false;
+
+					if (transferObj.callback)
+						transferObj.callback();
+					log("file transfer from builder '%s' complete.",
+						thisThis.name);
+					messageHandler(undefined);
+					thisThis._sendPendingMessages();
+					return;
+				}
+				fs.appendFile(transferObj.localFile,
+					new Buffer(msgs[i].data, 'base64'));
+			}
+		};
+
+		sock.on('data', messageHandler);
 		sock.on('close', function () {
 			log("builder '%s' disconnected", thisThis.name);
 			thisThis._socket = null;

@@ -6,7 +6,7 @@
 # Authors:
 #		Augustin Cavalier <waddlesplash>
 
-import os, sys, atexit, socket, ssl, json, subprocess, multiprocessing
+import os, sys, atexit, socket, ssl, json, base64, subprocess, multiprocessing
 
 confFilename = os.path.dirname(os.path.realpath(__file__)) + '/builder.conf'
 if (not os.path.isfile(confFilename)):
@@ -72,6 +72,23 @@ while True:
 				reply['output'] += line
 				sys.stdout.write(":: " + line)
 			reply['exitcode'] = proc.wait()
+		elif (msg['what'] == 'transferFile'):
+			print "Transferring file '" + msg['file'] + "'."
+			starting = {}
+			starting['what'] = 'transferStarting'
+			starting['id'] = msg['replyWith']
+			sendJSON(starting)
+
+			file = open(os.path.expanduser(msg['file']), 'rb')
+			while True:
+				piece = file.read(1024)
+				if not piece:
+					break
+				sendJSON({'data': base64.b64encode(piece)})
+			file.close()
+
+			print "File transfer complete."
+			reply['what'] = 'ignore'
 		elif (msg['what'] == 'getCores'):
 			reply['what'] = 'coreCount'
 			reply['count'] = multiprocessing.cpu_count()
