@@ -58,7 +58,7 @@ module.exports = function () {
 			else
 				return (a.category > b.category) - (a.category < b.category);
 		});
-		zlib.gzip(JSON.stringify(newClientRecipes), {level: 9}, function (err, res) {
+		zlib.gzip(JSON.stringify(newClientRecipes), function (err, res) {
 			thisThis.clientRecipes = res;
 		});
 	};
