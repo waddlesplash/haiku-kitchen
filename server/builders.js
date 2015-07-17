@@ -136,6 +136,83 @@ function Builder(builderManager, name, data) {
 	};
 	this.status('offline');
 
+	/**
+	  * @private
+	  * @memberof! Builder.prototype
+	  * @description Handles the passed message from the builder.
+	  * @param {Object} msg The message to handle.
+	  */
+	this._handleMessage = function (msg) {
+		if (!('what' in msg))
+			return;
+
+		if (msg.what.indexOf('cmd') == 0) {
+			if (!(msg.what in this._runningCommands)) {
+				log('WARN: message returned for pending command that does ' +
+					'not exist: builder %s, result: %s', this.name, JSON.stringify(msg));
+			} else {
+				var callback = this._runningCommands[msg.what].callback;
+				if (callback !== undefined)
+					callback(msg.exitcode, msg.output);
+				delete this._runningCommands[msg.what];
+			}
+			return;
+		}
+
+		switch (msg.what) {
+		// information about the builder
+		case 'coreCount':
+			this.cores = msg.count;
+			break;
+		case 'uname':
+			var uname = msg.output.trim().split(' ');
+			this.hrev = uname[3].substr(4);
+			this.data.architecture = uname[9];
+			break;
+		case 'archlist':
+			var archlist = msg.output.trim().replace(/\n/g, ' ');
+			if (archlist == 'x86_gcc2 x86')
+				this.data.flavor = 'gcc2hybrid';
+			else if (archlist == 'x86 x86_gcc2')
+				this.data.flavor = 'gcc4hybrid';
+			else if (archlist == this.data.architecture)
+				this.data.flavor = 'pure';
+			else
+				this.data.flavor = 'unknown';
+			this.status('online');
+			break;
+
+		case 'updateResult':
+			if (msg.exitcode != 0) {
+				log('update on builder %s failed, marking it as broken', this.name);
+				this.status('broken');
+			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
+				// See if we have the builder metadata, and get it if we don't
+				if (this.data.flavor == undefined) {
+					// fetch builder info
+					this._sendMessage({what: 'getCores'});
+					this._sendMessage({what: 'command', replyWith: 'uname',
+						command: 'uname -a'});
+					this._sendMessage({what: 'command', replyWith: 'archlist',
+						command: 'setarch -l'});
+					builderManager._ensureHaikuportsTreeOn(this.name);
+				}
+			} else {
+				log('update on builder %s succeeded, rebooting', this.name);
+				this._sendMessage({what: 'restart'});
+			}
+			break;
+
+		case 'restarting':
+		case 'ignore':
+			break;
+		default:
+			log("WARN: couldn't understand this message from '%s': %s", this.name,
+				JSON.stringify(msg));
+			break;
+		}
+	};
+
 	this._runningCommands = {};
 	this._nextCommandId = 0;
 	/**
@@ -213,82 +290,6 @@ function Builder(builderManager, name, data) {
 		this._sendMessage({what: 'transferFile', replyWith: ftId, file: filePath});
 	};
 
-	/**
-	  * @private
-	  * @memberof! Builder.prototype
-	  * @description Handles the passed message from the builder.
-	  * @param {Object} msg The message to handle.
-	  */
-	this._handleMessage = function (msg) {
-		if (!('what' in msg))
-			return;
-
-		if (msg.what.indexOf('cmd') == 0) {
-			if (!(msg.what in this._runningCommands)) {
-				log('WARN: message returned for pending command that does ' +
-					'not exist: builder %s, result: %s', this.name, JSON.stringify(msg));
-			} else {
-				var callback = this._runningCommands[msg.what].callback;
-				if (callback !== undefined)
-					callback(msg.exitcode, msg.output);
-				delete this._runningCommands[msg.what];
-			}
-			return;
-		}
-
-		switch (msg.what) {
-		// information about the builder
-		case 'coreCount':
-			this.cores = msg.count;
-			break;
-		case 'uname':
-			var uname = msg.output.trim().split(' ');
-			this.hrev = uname[3].substr(4);
-			this.data.architecture = uname[9];
-			break;
-		case 'archlist':
-			var archlist = msg.output.trim().replace(/\n/g, ' ');
-			if (archlist == 'x86_gcc2 x86')
-				this.data.flavor = 'gcc2hybrid';
-			else if (archlist == 'x86 x86_gcc2')
-				this.data.flavor = 'gcc4hybrid';
-			else if (archlist == this.data.architecture)
-				this.data.flavor = 'pure';
-			else
-				this.data.flavor = 'unknown';
-			this.status('online');
-			break;
-
-		case 'updateResult':
-			if (msg.exitcode != 0) {
-				log('update on builder %s failed, marking it as broken', this.name);
-				this.status('broken');
-			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
-				// See if we have the builder metadata, and get it if we don't
-				if (this.data.flavor == undefined) {
-					// fetch builder info
-					this._sendMessage({what: 'getCores'});
-					this._sendMessage({what: 'command', replyWith: 'uname',
-						command: 'uname -a'});
-					this._sendMessage({what: 'command', replyWith: 'archlist',
-						command: 'setarch -l'});
-					builderManager._ensureHaikuportsTreeOn(this.name);
-				}
-			} else {
-				log('update on builder %s succeeded, rebooting', this.name);
-				this._sendMessage({what: 'restart'});
-			}
-			break;
-
-		case 'restarting':
-		case 'ignore':
-			break;
-		default:
-			log("WARN: couldn't understand this message from '%s': %s", this.name,
-				JSON.stringify(msg));
-			break;
-		}
-	};
 	/**
 	  * @private
 	  * @memberof! Builder.prototype
