@@ -19,6 +19,74 @@ if (!fs.existsSync('cache/filetransfer')) {
 
 /**
   * @class
+  * @description Creates a new DataWriter object.
+  *
+  * The DataWriter class takes care of writing the transferred file data to disk,
+  * and calling the callback once the transfer completes.
+  *
+  * @param {string} transferName The name of the file transfer this DataWriter
+  *  is responsible for.
+  * @param {string} fileName The name of the local file to write to.
+  * @param {function|undefined} callback The callback to call once the transfer completes.
+  */
+function DataWriter(transferName, fileName, callback) {
+	this._writing = false;
+	this._done = false;
+	this._queuedData = [];
+
+	/**
+	  * @public
+	  * @memberof! DataWriter.prototype
+	  * @description Adds another chunk of (Base64-encoded) data to the write queue.
+	  */
+	this.append = function (data) {
+		this._queuedData.push(data);
+		this._writeQueuedData();
+	};
+	/**
+	  * @public
+	  * @memberof! DataWriter.prototype
+	  * @description Marks the transfer as "done"; that is, no more data will be
+	  *  added to the queue.
+	  */
+	this.done = function () {
+		this._done = true;
+		this._writeQueuedData();
+	};
+
+	/**
+	  * @private
+	  * @memberof! DataWriter.prototype
+	  * @description Writes a chunk of the queued data to disk.
+	  *
+	  * Once it finishes writing the data, it calls itself to write the next chunk.
+	  * If there are no more chunks and the "done" flag is set, it calls the callback.
+	  */
+	this._writeQueuedData = function () {
+		if (this._writing)
+			return;
+		if (this._queuedData.length === 0) {
+			if (this._done) {
+				log("file transfer '%s' complete.", transferName);
+				if (callback)
+					callback();
+			}
+			return;
+		}
+
+		this._writing = true;
+		var thisThis = this;
+		fs.appendFile(fileName,	new Buffer(this._queuedData[0], 'base64'),
+			function () {
+				thisThis._queuedData.splice(0, 1); // delete first item
+				thisThis._writing = false;
+				thisThis._writeQueuedData();
+			});
+	}
+}
+
+/**
+  * @class
   * @description Creates a new Builder object.
   *
   * @param {BuilderManager} builderManager The BuilderManager.
@@ -136,12 +204,12 @@ function Builder(builderManager, name, data) {
 	this.transferFile = function (filePath, callback) {
 		var ftId = 'ft' + this._nextTransferId;
 		this._nextTransferId++;
+		var localFile = 'cache/filetransfer/' + path.basename(filePath);
 		this._runningCommands[ftId] = {
-			callback: callback,
 			file: filePath,
-			localFile: 'cache/filetransfer/' + path.basename(filePath)
+			dataWriter: new DataWriter(filePath, localFile, callback)
 		};
-		fs.unlink(this._runningCommands[ftId].localFile, function (err) {});
+		fs.unlink(localFile, function (err) { /* probably ENOENT */ });
 		this._sendMessage({what: 'transferFile', replyWith: ftId, file: filePath});
 	};
 
@@ -260,7 +328,7 @@ function Builder(builderManager, name, data) {
 				} catch (e) {
 					continue;
 				}
-				msgs[i] = json;
+				msgs.push(json);
 			}
 		}
 
@@ -287,6 +355,7 @@ function Builder(builderManager, name, data) {
 				thisThis._handleMessage(msg);
 			}
 		};
+
 		fileTransferHandler = function (data) {
 			var transferObj = thisThis._runningCommands[fileTransferId];
 			dataHandler(data);
@@ -295,17 +364,13 @@ function Builder(builderManager, name, data) {
 					sock.removeAllListeners('data');
 					sock.on('data', messageHandler);
 					this._fileTransfer = false;
+					transferObj.dataWriter.done();
 
-					if (transferObj.callback)
-						transferObj.callback();
-					log("file transfer from builder '%s' complete.",
-						thisThis.name);
 					messageHandler(undefined);
 					thisThis._sendPendingMessages();
 					return;
 				}
-				fs.appendFile(transferObj.localFile,
-					new Buffer(msgs[i].data, 'base64'));
+				transferObj.dataWriter.append(msgs[i].data);
 			}
 		};
 
