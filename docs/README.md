@@ -2,9 +2,6 @@ Kitchen Docs
 ==================================
 All of Kitchen's documentation is stored here in some form.
 
-## Deployment / Installation / Usage
-See `installation.md`.
-
 ## Development
 See `design.md` and the JSDoc comments in the source code.
 
