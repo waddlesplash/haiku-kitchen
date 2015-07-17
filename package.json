@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/waddlesplash/haiku-kitchen.git"
+    "url": "https://github.com/haikuports/haiku-kitchen.git"
   },
   "author": "Haiku, Inc.",
   "license": "MIT",
