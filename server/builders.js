@@ -13,9 +13,6 @@ if (!fs.existsSync('data/builders.json')) {
 	log('FATAL: no builders configuration file! set one up using kitchen.js.');
 	process.exit(1);
 }
-if (!fs.existsSync('cache/filetransfer')) {
-	fs.mkdirSync('cache/filetransfer');
-}
 
 /**
   * @class
@@ -94,6 +91,10 @@ function DataWriter(transferName, fileName, callback) {
   * @param {Object} data The data from the `builders.json` file for this builder.
   */
 function Builder(builderManager, name, data) {
+	if (!fs.existsSync('cache/filetransfer')) {
+		fs.mkdirSync('cache/filetransfer');
+	}
+
 	/**
 	  * @private
 	  * @memberof! Builder.prototype
@@ -394,7 +395,7 @@ function Builder(builderManager, name, data) {
 
 /**
   * @class BuilderManager
-  * @description Instatiates a new BuilderManager object.
+  * @description Creates a new BuilderManager object.
   *
   * There should only be one instance of BuilderManager running on one
   * machine at any given time, as it assumes complete control of the TCP
