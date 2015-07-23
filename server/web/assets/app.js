@@ -181,7 +181,10 @@ function showBuildsPage() {
 				row += '<td>' + data[i].description + '</td>';
 				row += '<td>' + getFriendlyNameForStatus(data[i].status) +
 					' ' + $.timeago(data[i].lastTime) + '</td>';
-				row += '<td>' + data[i].steps + ' steps</td>';
+				if ('curStep' in data[i])
+					row += '<td>step ' + data[i].curStep + '/' + data[i].steps + '</td>';
+				else
+					row += '<td>' + data[i].steps + ' steps</td>';
 				row += '</tr>';
 				$("#buildsTable").append(row);
 			}

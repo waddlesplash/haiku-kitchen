@@ -188,6 +188,7 @@ module.exports = function (builderManager) {
 	this.addBuild = function (build) {
 		build.id = nextBuildId++;
 		build.status = 'pending';
+		build.lastTime = new Date();
 		builds[build.id] = build;
 		this._writeBuilds();
 		log("build #%d ('%s') created", build.id, build.description);
@@ -209,7 +210,8 @@ module.exports = function (builderManager) {
 				status: build.status,
 				description: build.description,
 				lastTime: build.lastTime,
-				steps: build.steps.length
+				steps: build.steps.length,
+				curStep: build.curStep
 			});
 		}
 		ret.sort(function (a, b) {
