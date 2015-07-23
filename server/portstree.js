@@ -198,10 +198,15 @@ module.exports = function () {
 	  * and recreates the cache.
 	  */
 	this.update = function () {
+		if (!fs.existsSync('cache/recipes.json'))
+			return thisThis._createCache();
+
 		log('running git-pull...');
 		shell.exec('cd cache/haikuports && git pull --ff-only', {silent: true}, function (code, output) {
 			if (code) {
 				log('git-pull failed: ' + output);
+				if (output.indexOf('Failed to connect') >= 0)
+					return;
 				log('recreating cache...');
 				thisThis._createCache();
 			} else if (output.indexOf('Already up-to-date.') >= 0) {
