@@ -32,14 +32,15 @@ module.exports = function (filepath) {
 	this.requires = [];
 	this.build_requires = [];
 	this.architectures = [];
+	this.secondaryArchitectures = [];
 	this.revision = 0;
 
 	/*! This is a really rudimentary .recipe parser. It can't handle all of
 	 * Bash's syntax, but it handles enough for our purposes. */
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
 	for (var i = 0; i < rawRecipe.length; i++) {
-		var variables = ['REVISION', 'ARCHITECTURES', 'PROVIDES', 'REQUIRES',
-			'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
+		var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
+			'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
 		for (var v in variables) {
 			if ((i == 0 || /\s/.test(rawRecipe[i - 1])) &&
 				rawRecipe.substr(i, variables[v].length) == variables[v]) {
@@ -62,6 +63,9 @@ module.exports = function (filepath) {
 					this.requires.push.apply(this.requires, str.trim().split(/\n+\t*/g));
 				else if (variables[v] == 'ARCHITECTURES')
 					this.architectures.push.apply(this.architectures, str.trim().split(/\s+/g));
+				else if (variables[v] == 'SECONDARY_ARCHITECTURES')
+					this.secondaryArchitectures.push.apply(this.secondaryArchitectures,
+						str.trim().split(/\s+/g));
 				else if (variables[v].indexOf('BUILD') === 0)
 					this.build_requires.push.apply(this.build_requires, str.trim().split(/\s+/g));
 				else
