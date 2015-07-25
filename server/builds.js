@@ -112,7 +112,6 @@ module.exports = function (builderManager) {
 		var builder = builderManager.builders[builderName];
 		if (builder === undefined) {
 			build.status = 'failed';
-			thisThis._buildFinished(builderName, build);
 			return;
 		}
 
