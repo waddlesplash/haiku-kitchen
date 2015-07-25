@@ -74,7 +74,6 @@ buildsManager.onBuildFinished(function (build) {
 function createJobToLintRecipes(recipes, desc) {
 	var build = {
 		description: desc ? desc : 'lint unlinted recipes',
-		noDependencyTracking: true,
 		architecture: 'any',
 		steps: [],
 		handleResult: function (step, exitcode, output) {

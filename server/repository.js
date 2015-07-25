@@ -8,6 +8,9 @@
 
 var log = require('debug')('kitchen:repository');
 
+var primaryArches = ['x86_gcc2', 'x86', 'x86_64'],
+	secondaryArches = ['x86_gcc2:x86', 'x86:x86_gcc2'];
+
 /**
   * @class RepositoryManager
   * @description Creates a new RepositoryManager object.
@@ -27,7 +30,6 @@ module.exports = function (builderManager, buildsManager) {
 	this.createJobToBuildRecipes = function (recipes, desc) {
 		var build = {
 			description: desc ? desc : 'build recipes',
-			noDependencyTracking: true, // TODO
 			architecture: 'x86_64', // TODO
 			steps: [], // TODO: multitask, TODO: -j<NUM>
 			handleResult: function (step, exitcode, output) {
