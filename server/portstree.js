@@ -205,7 +205,8 @@ module.exports = function () {
 		shell.exec('cd cache/haikuports && git pull --ff-only', {silent: true}, function (code, output) {
 			if (code) {
 				log('git-pull failed: ' + output);
-				if (output.indexOf('Failed to connect') >= 0)
+				if (output.indexOf('Failed to connect') >= 0 ||
+					output.indexOf('Could not resolve host') >= 0)
 					return;
 				log('recreating cache...');
 				thisThis._createCache();
