@@ -16,8 +16,8 @@ process.on('uncaughtException', function (err) {
 
 var log = require('debug')('kitchen:index'), fs = require('fs'),
 	PortsTree = require('./portstree.js'), BuildsManager = require('./builds.js'),
-	BuilderManager = require('./builders.js'), timers = require('timers'),
-	zlib = require('zlib'), IRC = require('internet-relay-chat');
+	BuilderManager = require('./builders.js'), RepositoryManager = require('./repository.js'),
+	timers = require('timers'), zlib = require('zlib'), IRC = require('internet-relay-chat');
 
 var argv = require('minimist')(process.argv.slice(2));
 if (argv['help']) {
@@ -76,7 +76,6 @@ function createJobToLintRecipes(recipes, desc) {
 		description: desc ? desc : 'lint unlinted recipes',
 		noDependencyTracking: true,
 		architecture: 'any',
-		lastTime: new Date(),
 		steps: [],
 		handleResult: function (step, exitcode, output) {
 			if (exitcode != 0 && exitcode != 1)
@@ -117,29 +116,8 @@ if (needToCreateLintJob) {
 	});
 }
 
-/**
-  * Creates a job to build the specified recipes.
-  * @param {array} recipes The recipes to be linted.
-  */
-function createJobToBuildRecipes(recipes, desc) {
-	var build = {
-		description: desc ? desc : 'build recipes',
-		noDependencyTracking: true, // TODO
-		architecture: 'x86_64', // TODO
-		lastTime: new Date(),
-		steps: [], // TODO: multitask, TODO: -j<NUM>
-		handleResult: function (step, exitcode, output) {
-			return (exitcode == 0);
-		},
-		onSuccess: function () {
-			// TODO: fetch files
-		}
-	};
-	for (var i in recipes) {
-		build.steps.push({command: 'haikuporter --get-dependencies ' + recipes[i]});
-	}
-	buildsManager.addBuild(build);
-}
+var repositoryManager = global.repositoryManager =
+	new RepositoryManager(builderManager, buildsManager);
 
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = global.app = express();
@@ -230,87 +208,7 @@ if (fs.existsSync('data/irc.json')) {
 		}
 
 		var command = message.substr(bot.myNick.length + 1).trim().split(' ');
-		function readRecipesFromCommand(startAtIndex, fetchAllVersions) {
-			if (pendingApprovalRequest != null) {
-				reply("There's already an approval request pending...");
-				return;
-			}
-			var recipes = [];
-			for (var i = startAtIndex; i < command.length; i++) {
-				if (!(command[i] in portsTree.recipes)) {
-					var count = 0;
-					for (var recipe in portsTree.recipes) {
-						if (recipe.indexOf(command[i]) == 0) {
-							count++;
-							if (fetchAllVersions) {
-								recipes.push(recipe);
-							} else {
-								recipes.push(portsTree.recipes[recipe].name);
-								break;
-							}
-						}
-					}
-					if (count == 0) {
-						reply("Uh, what's '" + command[i] + "'? I can't find any recipes " +
-							"matching or starting with that string...");
-						return;
-					}
-				} else
-					recipes.push(command[i]);
-			}
-			return recipes;
-		}
 		switch (command[0]) {
-		case 'relint':
-			var recipes = readRecipesFromCommand(1);
-			if (!recipes)
-				break;
-			pendingApprovalRequest = function () {
-				createJobToLintRecipes(recipes, 'relint specific recipes at request of ' +
-					sender.nick);
-				reply("Build created.");
-				pendingApprovalRequest = null;
-			};
-			if (recipes.length > 14) {
-				reply("OK, but you're going to need another op to approve that.");
-				bot.message(channel, "Hey! Can anyone approve " + sender.nick + "'s " +
-					"request to relint " + recipes.length + " recipes? Tell me 'approve' " +
-					"or 'confirm'.");
-			} else
-				pendingApprovalRequest();
-			timers.setTimeout(nullifyPendingApprovalRequest, 15 * 60 * 1000);
-			break;
-		case 'build':
-			var recipes = readRecipesFromCommand(1);
-			if (!recipes)
-				break;
-			pendingApprovalRequest = function () {
-				createJobToBuildRecipes(recipes, 'build specific recipes at request of ' +
-					sender.nick);
-				reply("Build created.");
-				pendingApprovalRequest = null;
-			};
-			if (recipes.length > 5) {
-				reply("OK, but you're going to need another op to approve that.");
-				bot.message(channel, "Hey! Can anyone approve " + sender.nick + "'s " +
-					"request to (re)build " + recipes.length + " recipes? Tell me 'approve' " +
-					"or 'confirm'.");
-			} else
-				pendingApprovalRequest();
-			timers.setTimeout(nullifyPendingApprovalRequest, 15 * 60 * 1000);
-			break;
-
-		case 'approve':
-		case 'confirm':
-			if (pendingApprovalRequest == null) {
-				reply("There aren't any pending approval requests right now! Maybe " +
-					"the 15-minute timeout was reached?");
-				break;
-			}
-			pendingApprovalRequest();
-			pendingApprovalRequest = null;
-			break;
-
 		case 'lazy':
 			reply("I build hundreds of packages at a moment's notice. I command millions " +
 				"of silicon gates, screaming along at billions of cycles per second.")
