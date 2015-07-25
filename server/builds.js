@@ -110,6 +110,11 @@ module.exports = function (builderManager) {
 		build.lastTime = new Date();
 		build.builder = builderName;
 		var builder = builderManager.builders[builderName];
+		if (builder === undefined) {
+			build.status = 'failed';
+			thisThis._buildFinished(builderName, build);
+			return;
+		}
 
 		build.curStep = 0;
 		function commandFinished(exitcode, output) {
