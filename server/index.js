@@ -49,7 +49,6 @@ timers.setInterval(portsTree.update, 10 * 60 * 1000);
 /*! --------------------- builds/builders --------------------- */
 var builderManager = global.builderManager = new BuilderManager(),
 	buildsManager = global.buildsManager = new BuildsManager(builderManager);
-timers.setInterval(builderManager.updateAllBuilders, 240 * 60 * 1000);
 
 builderManager.onBuilderBroken(function (name) {
 	ircNotify("Oh no! Builder '" + name +

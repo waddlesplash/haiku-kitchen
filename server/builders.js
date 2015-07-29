@@ -140,6 +140,20 @@ function Builder(builderManager, name, data) {
 	/**
 	  * @private
 	  * @memberof! Builder.prototype
+	  * @description Sends messages to collect information about the builder.
+	  */
+	this._fetchMetadata = function () {
+		this._sendMessage({what: 'getCores'});
+		this._sendMessage({what: 'command', replyWith: 'uname',
+			command: 'uname -a'});
+		this._sendMessage({what: 'command', replyWith: 'archlist',
+			command: 'setarch -l'});
+		builderManager._ensureHaikuportsTreeOn(this.name);
+	};
+
+	/**
+	  * @private
+	  * @memberof! Builder.prototype
 	  * @description Handles the passed message from the builder.
 	  * @param {Object} msg The message to handle.
 	  */
@@ -190,13 +204,7 @@ function Builder(builderManager, name, data) {
 			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
 				// See if we have the builder metadata, and get it if we don't
 				if (this.data.flavor == undefined) {
-					// fetch builder info
-					this._sendMessage({what: 'getCores'});
-					this._sendMessage({what: 'command', replyWith: 'uname',
-						command: 'uname -a'});
-					this._sendMessage({what: 'command', replyWith: 'archlist',
-						command: 'setarch -l'});
-					builderManager._ensureHaikuportsTreeOn(this.name);
+					this._fetchMetadata();
 				}
 			} else {
 				log('update on builder %s succeeded, rebooting', this.name);
@@ -308,8 +316,7 @@ function Builder(builderManager, name, data) {
 			// startup stuff
 			this._sendMessage({what: 'command', replyWith: 'ignore',
 				command: 'hey Tracker quit'});
-			this._sendMessage({what: 'command', replyWith: 'updateResult',
-				command: 'pkgman full-sync -y'});
+			this._fetchMetadata();
 		}
 
 		var messageHandler, fileTransferHandler, fileTransferId, dataBuf = '', msgs;
