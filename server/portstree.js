@@ -216,7 +216,7 @@ module.exports = function () {
 				log('git-pull finished, doing incremental cache update...');
 				var cmd = 'cd cache/haikuports && git diff ' + thisThis._HEAD + '..HEAD --numstat';
 				shell.exec(cmd, {silent: true}, function (code, output) {
-					if (code != 0) {
+					if (code !== 0) {
 						log("git-diff did not exit with 0: '%s', performing " +
 							'complete cache rebuild', output.trim());
 						thisThis._completeCacheRebuild();
@@ -231,7 +231,7 @@ module.exports = function () {
 						// 0 is additions, 1 is deletions, 2 is filename
 						if (!/\.recipe$/.test(line[2]))
 							continue;
-						if (line[1] == 0) {
+						if (line[1] === 0) {
 							// only additions, just add the file to the list
 							filesToUpdate.push('cache/haikuports/' + line[2]);
 							continue;

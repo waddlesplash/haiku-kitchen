@@ -42,7 +42,7 @@ module.exports = function (filepath) {
 		var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
 			'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
 		for (var v in variables) {
-			if ((i == 0 || /\s/.test(rawRecipe[i - 1])) &&
+			if ((i === 0 || /\s/.test(rawRecipe[i - 1])) &&
 				rawRecipe.substr(i, variables[v].length) == variables[v]) {
 				i += variables[v].length;
 				while (rawRecipe[i] != '"' && rawRecipe[i] != "'" && i < rawRecipe.length)

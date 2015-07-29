@@ -20,7 +20,7 @@ var log = require('debug')('kitchen:index'), fs = require('fs'),
 	timers = require('timers'), zlib = require('zlib'), IRC = require('internet-relay-chat');
 
 var argv = require('minimist')(process.argv.slice(2));
-if (argv['help']) {
+if (argv.help) {
 	console.log('The Kitchen server.');
 	console.log('Usage: index.js [options]');
 	console.log('');
@@ -76,9 +76,9 @@ function createJobToLintRecipes(recipes, desc) {
 		architecture: 'any',
 		steps: [],
 		handleResult: function (step, exitcode, output) {
-			if (exitcode != 0 && exitcode != 1)
+			if (exitcode !== 0 && exitcode != 1)
 				return false;
-			portsTree.recipes[step.split(' ')[2]].lint = (exitcode == 0);
+			portsTree.recipes[step.split(' ')[2]].lint = (exitcode === 0);
 			return true;
 		},
 		onSuccess: function () {
@@ -93,9 +93,9 @@ function createJobToLintRecipes(recipes, desc) {
 }
 var needToCreateLintJob = true;
 for (var i in buildsManager.builds()) {
-	var build = buildsManager.builds()[i]
-	if (build.description == 'lint unlinted recipes'
-		&& build.status == 'pending')
+	var build = buildsManager.builds()[i];
+	if (build.description == 'lint unlinted recipes' &&
+		build.status == 'pending')
 		needToCreateLintJob = false;
 }
 if (needToCreateLintJob) {
@@ -145,7 +145,7 @@ app.get('/api/builds', function (request, response) {
 });
 app.get('/api/build/*', function (request, response) {
 	var b = /[^/]*$/.exec(request.url)[0], build = buildsManager.builds()[b];
-	if (build == undefined) {
+	if (build === undefined) {
 		response.writeHead(404, {'Content-Type': 'text/plain'});
 		response.end('404 File Not Found');
 		return;
@@ -167,7 +167,7 @@ app.get('/api/build/*', function (request, response) {
 	});
 });
 app.use(express.static('web'));
-app.listen(argv['port']);
+app.listen(argv.port);
 
 /*! --------------------------- IRC --------------------------- */
 var bot, ircConfig, toPost = [];
@@ -182,12 +182,8 @@ if (fs.existsSync('data/irc.json')) {
 		nick: ircConfig.nick
 	});
 
-	var pendingApprovalRequest = null;
-	function nullifyPendingApprovalRequest() {
-		pendingApprovalRequest = null;
-	}
 	bot.on('message', function (sender, channel, message) {
-		if (message.search(new RegExp(bot.myNick + '\\b')) != 0)
+		if (message.search(new RegExp(bot.myNick + '\\b')) !== 0)
 			return;
 		var isOp = false;
 		for (var nick in bot.channels[channel].users) {
@@ -209,7 +205,7 @@ if (fs.existsSync('data/irc.json')) {
 		switch (command[0]) {
 		case 'lazy':
 			reply("I build hundreds of packages at a moment's notice. I command millions " +
-				"of silicon gates, screaming along at billions of cycles per second.")
+				"of silicon gates, screaming along at billions of cycles per second.");
 			reply("And you?");
 			break;
 		default:
@@ -243,4 +239,4 @@ global.ircNotify = function (say) {
 	}
 	for (var i in ircConfig.channels)
 		bot.message(ircConfig.channels[i], say);
-}
+};

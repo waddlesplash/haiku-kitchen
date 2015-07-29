@@ -79,7 +79,7 @@ function DataWriter(transferName, fileName, callback) {
 				thisThis._writing = false;
 				thisThis._writeQueuedData();
 			});
-	}
+	};
 }
 
 /**
@@ -126,7 +126,7 @@ function Builder(builderManager, name, data) {
 	  * @returns {string} The current status.
 	  */
 	this.status = function (newStatus) {
-		if (newStatus != undefined && this._status != 'broken') {
+		if (newStatus !== undefined && this._status != 'broken') {
 			if (newStatus == 'broken') {
 				for (var i in builderManager._builderBrokenCallbacks)
 					builderManager._builderBrokenCallbacks[i](this.name);
@@ -161,7 +161,7 @@ function Builder(builderManager, name, data) {
 		if (!('what' in msg))
 			return;
 
-		if (msg.what.indexOf('cmd') == 0) {
+		if (msg.what.indexOf('cmd') === 0) {
 			if (!(msg.what in this._runningCommands)) {
 				log('WARN: message returned for pending command that does ' +
 					'not exist: builder %s, result: %s', this.name, JSON.stringify(msg));
@@ -198,12 +198,12 @@ function Builder(builderManager, name, data) {
 			break;
 
 		case 'updateResult':
-			if (msg.exitcode != 0) {
+			if (msg.exitcode !== 0) {
 				log('update on builder %s failed, marking it as broken', this.name);
 				this.status('broken');
 			} else if (msg.output.indexOf('Nothing to do.') >= 0) {
 				// See if we have the builder metadata, and get it if we don't
-				if (this.data.flavor == undefined) {
+				if (this.data.flavor === undefined) {
 					this._fetchMetadata();
 				}
 			} else {
@@ -252,7 +252,7 @@ function Builder(builderManager, name, data) {
 	  * @param {Object} object The object to stringify and send.
 	  */
 	this._sendMessage = function (object) {
-		if (this._socket == null) {
+		if (this._socket === null) {
 			log('WARN: attempt to write to null socket (builder %s).', this.name);
 			return;
 		}
@@ -413,7 +413,7 @@ module.exports = function () {
 
 	this.builders = {}; {
 		var buildersData = JSON.parse(fs.readFileSync('data/builders.json',
-			{encoding: 'UTF-8'}))
+			{encoding: 'UTF-8'}));
 		for (var name in buildersData)
 			this.builders[name] = new Builder(this, name, buildersData[name]);
 	}
@@ -456,13 +456,13 @@ module.exports = function () {
 		var cmd = 'cd ~/haikuporter && git pull && cd ~/haikuports && git pull && cd ~';
 		builder.status('busy');
 		builder.runCommand(cmd, function (exitcode, output) {
-			if (exitcode == 0) {
+			if (exitcode === 0) {
 				builder.status('online');
 			} else {
 				log('git-pull on builder %s failed: %s', builderName, output.trim());
 				builder.status('broken');
 			}
-			if (callback != undefined)
+			if (callback !== undefined)
 				callback();
 		});
 	};
@@ -475,18 +475,18 @@ module.exports = function () {
 	  *   builders are finished updating.
 	  */
 	this.updateAllHaikuportsTrees = function (callback) {
-		var buildersToUpdate = 0, updated = 0;
+		var buildersToUpdate = 0, updated = 0, updateCallback = function () {
+				updated++;
+				if (updated == buildersToUpdate && callback !== undefined)
+					callback();
+			};
 		for (var i in thisThis._builderSockets) {
 			buildersToUpdate++;
-			thisThis._updateHaikuportsTreeOn(i, function () {
-				updated++;
-				if (updated == buildersToUpdate && callback != undefined)
-					callback();
-			});
+			thisThis._updateHaikuportsTreeOn(i, updateCallback);
 		}
-		if (buildersToUpdate == 0) {
+		if (buildersToUpdate === 0) {
 			// No online builders, so just treat them as updated
-			if (callback != undefined)
+			if (callback !== undefined)
 				callback();
 		}
 	};
@@ -515,7 +515,7 @@ module.exports = function () {
 
 		var cmd = 'ls ~/haikuporter/ && ls ~/haikuports/';
 		thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
-			if (exitcode == 0) {
+			if (exitcode === 0) {
 				// they're already there, just update them
 				thisThis._updateHaikuportsTreeOn(builderName, treeIsReady);
 				return;
@@ -525,7 +525,7 @@ module.exports = function () {
 			cmd = 'cd ~ && git clone https://bitbucket.org/haikuports/haikuporter.git ' +
 				'--depth=1 && git clone https://bitbucket.org/haikuports/haikuports.git --depth=1';
 			thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
-				if (exitcode == 0)
+				if (exitcode === 0)
 					treeIsReady();
 				else {
 					log('git-clone on builder %s failed: %s', builderName, output.trim());
@@ -541,7 +541,7 @@ module.exports = function () {
 			cmd = cmd.join(' >>' + confFile + ' && echo ');
 			cmd = 'rm -f ' + confFile + ' && echo ' + cmd + ' >>' + confFile;
 			thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
-				if (exitcode != 0) {
+				if (exitcode !== 0) {
 					log('attempt to create haikuports.conf on %s failed: %s',
 						builderName, output.trim());
 					thisThis.builders[builderName].status('broken');
@@ -582,7 +582,6 @@ module.exports = function () {
 		key: fs.readFileSync('data/server.key'),
 		cert: fs.readFileSync('data/server.crt')
 	};
-	var thisThis = this;
 	require('tls').createServer(options, function (sock) {
 		log('socket opened from %s', sock.remoteAddress);
 		var msg = '';
@@ -604,7 +603,7 @@ module.exports = function () {
 				sock.destroy();
 				return;
 			}
-			if (thisThis.builders[msg.name]._socket != null) {
+			if (thisThis.builders[msg.name]._socket !== null) {
 				log("AUTHFAIL: builder %s is already connected?!", msg.name);
 				sock.destroy();
 				return;

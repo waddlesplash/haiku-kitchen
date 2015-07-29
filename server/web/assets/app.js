@@ -298,7 +298,7 @@ function navigate(force) {
 	$('#pageContentsBody').html('');
 	setPageTitle('Loading…', '');
 
-	if (window.location.hash.indexOf("#/build/") == 0) {
+	if (window.location.hash.indexOf("#/build/") === 0) {
 		fetchPageAndCall('pages/build.html', showBuildPage);
 		currentHash = window.location.hash;
 		return;

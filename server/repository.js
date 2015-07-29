@@ -33,7 +33,7 @@ module.exports = function (builderManager, buildsManager) {
 			architecture: 'x86_64', // TODO
 			steps: [], // TODO: multitask, TODO: -j<NUM>
 			handleResult: function (step, exitcode, output) {
-				return (exitcode == 0);
+				return (exitcode === 0);
 			},
 			onSuccess: function () {
 				// TODO: fetch files
@@ -43,5 +43,5 @@ module.exports = function (builderManager, buildsManager) {
 			build.steps.push({command: 'haikuporter --get-dependencies ' + recipes[i]});
 		}
 		buildsManager.addBuild(build);
-	}
-}
+	};
+};

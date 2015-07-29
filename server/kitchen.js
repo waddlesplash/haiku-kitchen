@@ -9,7 +9,7 @@
 var argv = require('minimist')(process.argv.slice(2)),
 	fs = require('fs'), crypto = require('crypto');
 
-if (argv['help'] || process.argv.length < 3) {
+if (argv.help || process.argv.length < 3) {
 	console.log('Application for managing an installation of Haiku Kitchen.');
 	console.log('Usage: kitchen.js [command] [options]');
 	console.log('');
@@ -42,7 +42,7 @@ case 'builder:create':
 		console.error("Builder must have a named owner.");
 		process.exit(2);
 	}
-	var name = argv['name'];
+	var name = argv.name;
 	if (name.match(/[^A-Z0-9a-z_-]/)) {
 		console.error('Illegal characters in builder name, valid ones are [A-Z][a-z][0-9]-_.');
 		process.exit(3);
@@ -52,7 +52,7 @@ case 'builder:create':
 		process.exit(4);
 	}
 	var clientConf = {name: name};
-	builders[name] = {owner: argv['owner']};
+	builders[name] = {owner: argv.owner};
 
 	// Get some entropy for a key
 	function getEntropy(len) {

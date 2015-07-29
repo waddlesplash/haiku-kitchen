@@ -136,7 +136,7 @@ module.exports = function (builderManager) {
 
 			build.curStep++;
 			if (build.curStep == build.steps.length) {
-				if (build.onSuccess != undefined)
+				if (build.onSuccess !== undefined)
 					build.onSuccess();
 				delete build.curStep;
 				build.status = 'succeeded';
