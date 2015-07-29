@@ -159,24 +159,36 @@ module.exports = function (builderManager) {
 			if (builderManager.builders[builderName].status() == 'online')
 				availableBuilderNames.push(builderName);
 		}
+		function nextAvailableBuilderIndex(arch) {
+			for (var j in availableBuilderNames) {
+				if (availableBuilderNames[j] === undefined)
+					continue;
+				var builder = builderManager.builders[availableBuilderNames[j]];
+				if (builder.status() != 'online')
+					continue;
+				if (arch !== undefined && builder.data.architecture !== arch)
+					continue;
+				return j;
+			}
+			return undefined;
+		}
 
 		for (var i in builds) {
-			if (availableBuilderNames.length == 0)
+			var index = nextAvailableBuilderIndex();
+			if (index === undefined)
 				return;
 			if (builds[i].status != 'pending')
 				continue;
 			if (builds[i].architecture == 'any') {
-				this._runBuildOn(availableBuilderNames[0], builds[i]);
-				builderManager.builders[availableBuilderNames[0]].status('busy');
-				delete availableBuilderNames[0];
+				this._runBuildOn(availableBuilderNames[index], builds[i]);
+				builderManager.builders[availableBuilderNames[index]].status('busy');
+				delete availableBuilderNames[index];
 			} else {
-				for (var j in availableBuilderNames) {
-					var builder = builderManager.builders[availableBuilderNames[j]];
-					if (builder.data.architecture == builds[i].architecture) {
-						this._runBuildOn(availableBuilderNames[j], builds[i]);
-						builder.status('busy');
-						delete availableBuilderNames[j];
-					}
+				index = nextAvailableBuilderIndex(builds[i].architecture);
+				if (index !== undefined) {
+					this._runBuildOn(availableBuilderNames[index], builds[i]);
+					builderManager.builders[availableBuilderNames[index]].status('busy');
+					delete availableBuilderNames[index];
 				}
 			}
 		}
