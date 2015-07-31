@@ -52,7 +52,7 @@ module.exports = function (filepath) {
 				break;
 			}
 		}
-		return newStr.trim().split(/\n+\t*/);
+		return newStr.trim().split(/\s*\n+\s*/);
 	}
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
 	var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
