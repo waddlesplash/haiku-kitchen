@@ -23,5 +23,14 @@ module.exports = {
 		test.strictEqual(JSON.stringify(generic.architectures),
 			JSON.stringify(['x86_gcc2', '?x86', '?x86_64']));
         test.done();
+    },
+	'generic_nogcc2-1.0.1': function (test) {
+		var generic = new Recipe('recipe/generic_nogcc2-1.0.1.recipe');
+        test.strictEqual(generic.name, 'generic_nogcc2');
+		test.strictEqual(generic.version, '1.0.1');
+		test.strictEqual(generic.revision, '1');
+		test.strictEqual(JSON.stringify(generic.architectures),
+			JSON.stringify(['x86', '?x86_64', '!x86_gcc2']));
+        test.done();
     }
 };
