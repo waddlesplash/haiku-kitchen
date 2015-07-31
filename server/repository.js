@@ -90,7 +90,7 @@ module.exports = function (builderManager, buildsManager) {
 			return false;
 		}
 
-		var secondaryArch = undefined;
+		var secondaryArch;
 		for (var i in arches) {
 			if (arches[i][0] == arch)
 				secondaryArch = arches[i][1];
@@ -131,13 +131,13 @@ module.exports = function (builderManager, buildsManager) {
 			var provides = [], requires = [];
 			for (var i in recipe.provides) {
 				var procd = processItem(recipe.provides[i], recipe);
-				if (procd.length == 0)
+				if (procd.length === 0)
 					continue;
 				provides.push(procd);
 			}
 			for (var i in recipe.build_requires) {
 				var procd = processItem(recipe.build_requires[i], recipe);
-				if (procd.length == 0)
+				if (procd.length === 0)
 					continue;
 				requires.push(procd);
 			}
