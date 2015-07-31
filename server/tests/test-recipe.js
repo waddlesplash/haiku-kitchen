@@ -32,5 +32,23 @@ module.exports = {
 		test.strictEqual(JSON.stringify(generic.architectures),
 			JSON.stringify(['x86', '?x86_64', '!x86_gcc2']));
         test.done();
+    },
+	'qemacs-0.3.3': function (test) {
+		// This recipe has #s in the PROVIDES/REQUIRES
+		var qemacs = new Recipe('recipe/qemacs-0.3.3.recipe');
+        test.strictEqual(qemacs.name, 'qemacs');
+		test.strictEqual(qemacs.version, '0.3.3');
+		test.strictEqual(qemacs.revision, '1');
+		test.strictEqual(JSON.stringify(qemacs.provides),
+			JSON.stringify(['qemacs$secondaryArchSuffix = $portVersion',
+				'app:qemacs$secondaryArchSuffix = $portVersion',
+				'cmd:qemacs$secondaryArchSuffix = $portVersion',
+				'cmd:qe$secondaryArchSuffix = $portVersion',
+				'cmd:html2png$secondaryArchSuffix = $portVersion']));
+		test.strictEqual(JSON.stringify(qemacs.requires),
+			JSON.stringify(['haiku$secondaryArchSuffix',
+				'lib:libpng$secondaryArchSuffix',
+				'lib:libjpeg$secondaryArchSuffix']));
+        test.done();
     }
 };

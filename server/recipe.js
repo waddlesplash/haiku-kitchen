@@ -37,6 +37,23 @@ module.exports = function (filepath) {
 
 	/*! This is a really rudimentary .recipe parser. It can't handle all of
 	 * Bash's syntax, but it handles enough for our purposes. */
+	function parseList(str) {
+		str = str.trim();
+		var newStr = '';
+		for (var i = 0; i < str.length; i++) {
+			switch (str[i]) {
+			case '#':
+				while (i < str.length && str[i] != '\n')
+					i++;
+				newStr += '\n';
+				break;
+			default:
+				newStr += str[i];
+				break;
+			}
+		}
+		return newStr.trim().split(/\n+\t*/);
+	}
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
 	for (var i = 0; i < rawRecipe.length; i++) {
 		var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
@@ -58,9 +75,9 @@ module.exports = function (filepath) {
 				}
 
 				if (variables[v].indexOf('PROVIDES') === 0)
-					this.provides.push.apply(this.provides, str.trim().split(/\n+\t*/g));
+					this.provides.push.apply(this.provides, parseList(str));
 				else if (variables[v].indexOf('REQUIRES') === 0)
-					this.requires.push.apply(this.requires, str.trim().split(/\n+\t*/g));
+					this.requires.push.apply(this.requires, parseList(str));
 				else if (variables[v] == 'ARCHITECTURES')
 					this.architectures.push.apply(this.architectures, str.trim().split(/\s+/g));
 				else if (variables[v] == 'SECONDARY_ARCHITECTURES')
@@ -73,6 +90,22 @@ module.exports = function (filepath) {
 			}
 		}
 	}
+
+	// Hacks to remove $PROVIDES and $REQUIRES
+	var newProvides = [];
+	for (var i in this.provides) {
+		if (this.provides[i] == '$PROVIDES')
+			continue;
+		newProvides.push(this.provides[i]);
+	}
+	this.provides = newProvides;
+	var newRequires = [];
+	for (var i in this.requires) {
+		if (this.requires[i] == '$REQUIRES')
+			continue;
+		newRequires.push(this.requires[i]);
+	}
+	this.requires = newRequires;
 
 	// Clean up architectures for the "gcc2" hacks. (FIXME: would be nice to fix this
 	// in HaikuPorter...)
