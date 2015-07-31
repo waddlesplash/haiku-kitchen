@@ -94,7 +94,7 @@ module.exports = function (filepath) {
 					this.secondaryArchitectures.push.apply(this.secondaryArchitectures,
 						str.trim().split(/\s+/g));
 				else if (variables[v].indexOf('BUILD') === 0)
-					this.build_requires.push.apply(this.build_requires, str.trim().split(/\s+/g));
+					this.build_requires.push.apply(this.build_requires, parseList(str));
 				else
 					this[variables[v].toLowerCase()] = str.trim();
 			}
