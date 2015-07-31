@@ -116,6 +116,13 @@ module.exports = function (filepath) {
 		newRequires.push(this.requires[i]);
 	}
 	this.requires = newRequires;
+	newRequires = [];
+	for (var i in this.build_requires) {
+		if (this.build_requires[i] == '$BUILD_REQUIRES')
+			continue;
+		newRequires.push(this.build_requires[i]);
+	}
+	this.build_requires = newRequires;
 
 	// Clean up architectures for the "gcc2" hacks. (FIXME: would be nice to fix this
 	// in HaikuPorter...)
