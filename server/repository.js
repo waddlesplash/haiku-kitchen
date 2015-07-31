@@ -6,12 +6,23 @@
  *		Augustin Cavalier <waddlesplash>
  */
 
-var log = require('debug')('kitchen:repository');
+var log = require('debug')('kitchen:repository'), DepGraph = require('dependency-graph').DepGraph;
 
 var arches = [
 	['x86_gcc2', 'x86'],
 	['x86', 'x86_gcc2'],
 	['x86_64']
+];
+var assumeSatisfied = [
+	// Assume these packages are already available in some form.
+	'gcc',
+	'binutils',
+	'libtool',
+	'gawk',
+	'make',
+	'grep',
+	'sed',
+	'tar'
 ];
 
 /**
@@ -124,7 +135,7 @@ module.exports = function (builderManager, buildsManager) {
 				str = str.substr(0, ioS);
 			if (str == 'haiku' || str == 'haiku_devel')
 				return '';
-			return str;
+			return str.toLowerCase();
 		}
 		for (var i in highestVersionForArch) {
 			var recipe = highestVersionForArch[i];
@@ -148,6 +159,32 @@ module.exports = function (builderManager, buildsManager) {
 				requires: requires
 			};
 		}
-		console.log(processedRecipes);
+
+		// Build dependency list
+		var graph = new DepGraph();
+		graph.addNode('broken');
+		for (var i in processedRecipes)
+			graph.addNode(processedRecipes[i].name);
+		for (var i in processedRecipes) {
+			var recipe = processedRecipes[i];
+			if (assumeSatisfied.indexOf(recipe.name) != -1)
+				continue; // we should already have the deps needed to build this
+
+			for (var j in recipe.requires) {
+				// Iterate over everything and try to find what provides this.
+				var satisfied = false;
+				for (var k in processedRecipes) {
+					if (processedRecipes[k].provides.indexOf(recipe.requires[j]) != -1) {
+						graph.addDependency(recipe.name, processedRecipes[k].name);
+						satisfied = true;
+						break;
+					}
+				}
+				if (!satisfied)
+					graph.addDependency(recipe.name, 'broken');
+			}
+		}
+		graph.removeNode('broken'); // FIXME: doesn't remove child nodes
+		console.log(graph.overallOrder());
 	};
 };
