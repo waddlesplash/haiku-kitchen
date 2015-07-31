@@ -50,5 +50,16 @@ module.exports = {
 				'lib:libpng$secondaryArchSuffix',
 				'lib:libjpeg$secondaryArchSuffix']));
         test.done();
+    },
+	'clang-3.5.1': function (test) {
+		// This recipe won't parse properly if stuff in {}s isn't ignored.
+		var clang = new Recipe('recipe/clang-3.5.1.recipe');
+        test.strictEqual(clang.name, 'clang');
+		test.strictEqual(clang.version, '3.5.1');
+		test.strictEqual(JSON.stringify(clang.requires),
+			JSON.stringify(['haiku$secondaryArchSuffix',
+				'lib:libstdc++$secondaryArchSuffix',
+				'clang$secondaryArchSuffix == $portVersion base']));
+        test.done();
     }
 };

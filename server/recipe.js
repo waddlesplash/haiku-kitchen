@@ -55,9 +55,19 @@ module.exports = function (filepath) {
 		return newStr.trim().split(/\n+\t*/);
 	}
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
+	var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
+		'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
 	for (var i = 0; i < rawRecipe.length; i++) {
-		var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
-			'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
+		if (rawRecipe[i] == '{') {
+			var scope = 1;
+			while (scope > 0) {
+				i++;
+				if (rawRecipe[i] == '{')
+					scope++;
+				else if (rawRecipe[i] == '}')
+					scope--;
+			}
+		}
 		for (var v in variables) {
 			if ((i === 0 || /\s/.test(rawRecipe[i - 1])) &&
 				rawRecipe.substr(i, variables[v].length) == variables[v]) {
