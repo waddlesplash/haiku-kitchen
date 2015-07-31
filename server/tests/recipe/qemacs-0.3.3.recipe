@@ -32,6 +32,7 @@ PROVIDES="
 REQUIRES="
 	haiku$secondaryArchSuffix
 	$REQUIRES
+
 	lib:libpng$secondaryArchSuffix
 	lib:libjpeg$secondaryArchSuffix
 #	lib:libavcodec$secondaryArchSuffix
