@@ -171,9 +171,10 @@ module.exports = function (builderManager, buildsManager) {
 				continue; // we should already have the deps needed to build this
 
 			for (var j in recipe.requires) {
-				// Iterate over everything and try to find what provides this.
 				if (haikuProvides.indexOf(recipe.requires[j]) != -1)
 					continue; // provided by one of the base Haiku packages
+
+				// Iterate over everything and try to find what provides this.
 				var satisfied = false;
 				for (var k in processedRecipes) {
 					if (processedRecipes[k].provides.indexOf(recipe.requires[j]) != -1) {
