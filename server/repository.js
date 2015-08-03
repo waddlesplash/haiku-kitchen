@@ -7,6 +7,7 @@
  */
 
 var log = require('debug')('kitchen:repository'), fs = require('fs'),
+	IRC = require('internet-relay-chat'),
 	DepGraph = require('dependency-graph').DepGraph;
 
 var arches = [
@@ -64,13 +65,11 @@ module.exports = function (builderManager, buildsManager) {
 	};
 
 	/**
-	  * @public
+	  * @private
 	  * @memberof! RepositoryManager.prototype
-	  * @description Determines what ports need to be built.
-	  * @param {string} arch The primary architecture to build for.
-	  * @returns {array} recipes An ordered list of recipes to build.
+	  * @description Private handler for determinePortsToBuld().
 	  */
-	this.determinePortsToBuild = function (arch) {
+	this._determinePortsToBuild = function (arch) {
 		function versionGreaterThan (v1, v2) {
 			if (v1 === undefined && v2 !== undefined)
 				return true;
@@ -189,6 +188,25 @@ module.exports = function (builderManager, buildsManager) {
 		}
 		graph.dependantsOf('broken').forEach(function (n) { graph.removeNode(n); });
 		graph.removeNode('broken');
-		console.log(graph.overallOrder());
+		return graph;
+	};
+
+	/**
+	  * @private
+	  * @memberof! RepositoryManager.prototype
+	  * @description Determines what ports need to be built.
+	  * @param {string} arch The primary architecture to build for.
+	  */
+	this.determinePortsToBuild = function (arch) {
+		try {
+			this._determinePortsToBuild(arch);
+		} catch (e) {
+			log('CATCH: _determinePortsToBuild failed:');
+			log(e);
+			// Don't send the exception to IRC in case it contains sensitive information
+			global.ircNotify("I tried to determine the correct order to build recipes in, but " +
+				"\u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black + "an exception occured" +
+				IRC.colors.reset + " :/. Can someone check the logfiles and figure out why?");
+		}
 	};
 };
