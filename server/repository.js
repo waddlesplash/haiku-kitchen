@@ -6,7 +6,8 @@
  *		Augustin Cavalier <waddlesplash>
  */
 
-var log = require('debug')('kitchen:repository'), DepGraph = require('dependency-graph').DepGraph;
+var log = require('debug')('kitchen:repository'), fs = require('fs'),
+	DepGraph = require('dependency-graph').DepGraph;
 
 var arches = [
 	['x86_gcc2', 'x86'],
@@ -24,6 +25,7 @@ var assumeSatisfied = [
 	'sed',
 	'tar'
 ];
+var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding: 'UTF-8'});
 
 /**
   * @class RepositoryManager
@@ -133,8 +135,6 @@ module.exports = function (builderManager, buildsManager) {
 			var ioS = str.indexOf(' ');
 			if (ioS != -1)
 				str = str.substr(0, ioS);
-			if (str == 'haiku' || str == 'haiku_devel')
-				return '';
 			return str.toLowerCase();
 		}
 		for (var i in highestVersionForArch) {
@@ -172,6 +172,8 @@ module.exports = function (builderManager, buildsManager) {
 
 			for (var j in recipe.requires) {
 				// Iterate over everything and try to find what provides this.
+				if (haikuProvides.indexOf(recipe.requires[j]) != -1)
+					continue; // provided by one of the base Haiku packages
 				var satisfied = false;
 				for (var k in processedRecipes) {
 					if (processedRecipes[k].provides.indexOf(recipe.requires[j]) != -1) {
