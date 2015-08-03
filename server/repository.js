@@ -184,7 +184,8 @@ module.exports = function (builderManager, buildsManager) {
 					graph.addDependency(recipe.name, 'broken');
 			}
 		}
-		graph.removeNode('broken'); // FIXME: doesn't remove child nodes
+		graph.dependantsOf('broken').forEach(function (n) { graph.removeNode(n); });
+		graph.removeNode('broken');
 		console.log(graph.overallOrder());
 	};
 };
