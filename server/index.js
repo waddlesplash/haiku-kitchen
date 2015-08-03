@@ -107,12 +107,12 @@ if (needToCreateLintJob) {
 	}
 	if (recipesToLint.length > 0)
 		createJobToLintRecipes(recipesToLint);
-	portsTree.onRecipesChanged(function (recipes) {
-		builderManager.updateAllHaikuportsTrees(function () {
-			createJobToLintRecipes(recipes);
-		});
-	});
 }
+portsTree.onRecipesChanged(function (recipes) {
+	builderManager.updateAllHaikuportsTrees(function () {
+		createJobToLintRecipes(recipes);
+	});
+});
 
 var repositoryManager = global.repositoryManager =
 	new RepositoryManager(builderManager, buildsManager);
