@@ -22,7 +22,12 @@ with open (confFilename, 'r') as confFile:
 print "Connecting to {0}...".format(conf['ip'])
 sock = socket.socket()
 sock.setblocking(1)
-sock.connect((conf['ip'], 42458))
+while True: # loop until we connect
+	try:
+		sock.connect((conf['ip'], 42458))
+	except:
+		continue
+	break
 
 def sendJSON(obj):
 	"Writes the dictionary object passed to the socket as JSON."
