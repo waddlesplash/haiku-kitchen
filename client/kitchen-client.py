@@ -6,27 +6,16 @@
 # Authors:
 #		Augustin Cavalier <waddlesplash>
 
-import os, sys, atexit, socket, ssl, json, base64, subprocess, multiprocessing
+import os, sys, socket, ssl, json, base64, subprocess, multiprocessing
 
 confFilename = os.path.dirname(os.path.realpath(__file__)) + '/builder.conf'
 if (not os.path.isfile(confFilename)):
 	raise IOError("Configuration file '" + confFilename + "' does not exist!")
 
-wantToExit = False
-thisFile = __file__
-def exit_handler():
-	if (not wantToExit and (not hasattr(sys, 'last_type')
-		or sys.last_type != KeyboardInterrupt)):
-		# something happened (probably socket close?) so just restart
-		print "Restarting process..."
-		os.execv(thisFile, sys.argv)
-atexit.register(exit_handler)
-
 with open (confFilename, 'r') as confFile:
 	try:
 		conf = json.loads(confFile.read().replace('\n', ''))
 	except ValueError:
-		wantToExit = True
 		print "Error: Your conf file is invalid JSON (filename: {0})".format(confFilename)
 		sys.exit(1)
 
@@ -52,7 +41,7 @@ while True:
 		newData = sock.recv(1024)
 		if (not newData):
 			print "Socket was closed."
-			exit_handler()
+			os.execv(__file__, sys.argv)
 		dataBuf += newData
 	data = dataBuf.split('\n')
 	dataBuf = data[-1]
@@ -95,6 +84,5 @@ while True:
 		elif (msg['what'] == 'restart'):
 			reply['what'] = 'restarting'
 			print "Recieved message 'restart', restarting OS..."
-			wantToExit = True
 			subprocess.Popen('shutdown -r', shell = True)
 		sendJSON(reply)
