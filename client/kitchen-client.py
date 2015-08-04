@@ -62,9 +62,11 @@ while True:
 			reply['what'] = msg['replyWith']
 			reply['output'] = ''
 			print "Executing command '" + msg['command'] + "'."
-			proc = subprocess.Popen(msg['command'], shell = True,
-									stdout = subprocess.PIPE,
-									stderr = subprocess.STDOUT)
+			command = msg['command']
+			if (not ('&&' in command or 'cd' in command)):
+				command = 'stdbuf -o L ' + command
+			proc = subprocess.Popen(commmand, shell = True,
+				stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 			for line in proc.stdout.readlines():
 				reply['output'] += line
 				sys.stdout.write(":: " + line)
