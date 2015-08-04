@@ -60,6 +60,7 @@ while True:
 			for line in proc.stdout.readlines():
 				reply['output'] += line
 				sys.stdout.write(":: " + line)
+				sys.stdout.flush()
 			reply['exitcode'] = proc.wait()
 		elif (msg['what'] == 'transferFile'):
 			print "Transferring file '" + msg['file'] + "'."
