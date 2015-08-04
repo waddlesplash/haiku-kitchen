@@ -181,8 +181,8 @@ function showBuildsPage() {
 				row += '<td>' + data[i].description + '</td>';
 				row += '<td>' + getFriendlyNameForStatus(data[i].status) +
 					' ' + $.timeago(data[i].lastTime) + '</td>';
-				if ('curStep' in data[i])
-					row += '<td>step ' + data[i].curStep + '/' + data[i].steps + '</td>';
+				if ('stepsSucceeded' in data[i])
+					row += '<td>step ' + data[i].stepsSucceeded + '/' + data[i].steps + '</td>';
 				else
 					row += '<td>' + data[i].steps + ' steps</td>';
 				row += '</tr>';
@@ -249,14 +249,9 @@ function showBuildPage(pageData) {
 
 			for (var i in data.steps) {
 				var status, step = data.steps[i];
-				if (data.status == 'succeeded' || data.curStep > i)
-					status = 'succeeded';
-				else if (data.curStep == i) {
-					if (data.status == 'failed')
-						status = 'failed';
-					else
-						status = 'running';
-				} else
+				if (step.status !== undefined)
+					status = step.status;
+				else
 					status = 'pending';
 				var item = '<li class="status-' + status + '">';
 				item += step.command;

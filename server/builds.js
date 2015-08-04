@@ -89,7 +89,8 @@ module.exports = function (builderManager) {
 	  * @param {Object} build The object of the build that just finished.
 	  */
 	this._buildFinished = function (builderName, build) {
-		builderManager.builders[builderName].status('online');
+		if (builderManager.builders[builderName].status() == 'busy')
+			builderManager.builders[builderName].status('online');
 		build.startTime = build.lastTime;
 		build.lastTime = new Date();
 		this._writeBuilds();
@@ -115,38 +116,60 @@ module.exports = function (builderManager) {
 			return;
 		}
 
-		build.curStep = 0;
+		build.stepsSucceeded = 0;
+		build.nextStep = 0;
 		function commandFinished(exitcode, output) {
 			if (exitcode == 999999999 && output == 'Builder disconnected') {
 				build.status = 'failed';
-				thisThis._buildFinished(builderName, build);
 				log('build #%d failed because the builder disconnected', build.id);
+				thisThis._buildFinished(builderName, build);
 				return;
 			}
 
-			var step = build.steps[build.curStep];
+			var step = build.steps[build.nextStep];
 			step.exitcode = exitcode;
 			step.output = output.trim();
-			if (!build.handleResult(step.command, exitcode, output)) {
+			var res;
+			try {
+				res = build.handleResult(step, exitcode, output)
+			} catch (e) {
+				log('handleResult() failed (build #%d):', build.id);
+				log(e);
+				res = false;
+			}
+			if (!res) {
 				build.status = 'failed';
+				step.status = 'failed';
 				thisThis._buildFinished(builderName, build);
-				log('build #%d failed on step %d', build.id, build.curStep);
+				log('build #%d failed on step %d', build.id, build.nextStep);
 				return;
 			}
+			if (step.status === undefined || step.status == 'running')
+				step.status = 'succeeded';
+			if (step.status == 'succeeded')
+				build.stepsSucceeded++;
 
-			build.curStep++;
-			if (build.curStep == build.steps.length) {
+			while (build.nextStep < build.steps.length &&
+				build.steps[build.nextStep].status !== undefined) {
+				build.nextStep++;
+			}
+			if (build.nextStep == build.steps.length) {
+				delete build.nextStep;
+				if (build.steps.length > build.stepsSucceeded)
+					build.status = 'partially succeeded';
+				else
+					build.status = 'succeeded';
 				if (build.onSuccess !== undefined)
 					build.onSuccess();
-				delete build.curStep;
-				build.status = 'succeeded';
 				thisThis._buildFinished(builderName, build);
 				log('build #%d succeeded!', build.id);
 				return;
 			}
-			builder.runCommand(build.steps[build.curStep].command, commandFinished);
+			build.steps[build.nextStep].status = 'running';
+			builder.runCommand(build.steps[build.nextStep].command, commandFinished);
 		}
-		builder.runCommand(build.steps[build.curStep].command, commandFinished);
+		build.steps[build.nextStep].status = 'running';
+		builder.runCommand(build.steps[build.nextStep].command, commandFinished);
 	};
 	/**
 	  * @private
@@ -227,7 +250,7 @@ module.exports = function (builderManager) {
 				description: build.description,
 				lastTime: build.lastTime,
 				steps: build.steps.length,
-				curStep: build.curStep
+				stepsSucceeded: build.stepsSucceeded
 			});
 		}
 		ret.sort(function (a, b) {
