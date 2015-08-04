@@ -65,7 +65,7 @@ while True:
 			command = msg['command']
 			if (not ('&&' in command or 'cd' in command)):
 				command = 'stdbuf -o L ' + command
-			proc = subprocess.Popen(commmand, shell = True,
+			proc = subprocess.Popen(command, shell = True,
 				stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 			for line in proc.stdout.readlines():
 				reply['output'] += line
