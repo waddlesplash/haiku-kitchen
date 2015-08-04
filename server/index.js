@@ -78,7 +78,7 @@ function createJobToLintRecipes(recipes, desc) {
 		handleResult: function (step, exitcode, output) {
 			if (exitcode !== 0 && exitcode != 1)
 				return false;
-			portsTree.recipes[step.split(' ')[2]].lint = (exitcode === 0);
+			portsTree.recipes[step.command.split(' ')[2]].lint = (exitcode === 0);
 			return true;
 		},
 		onSuccess: function () {
@@ -91,26 +91,17 @@ function createJobToLintRecipes(recipes, desc) {
 	}
 	buildsManager.addBuild(build);
 }
-var needToCreateLintJob = true;
-for (var i in buildsManager.builds()) {
-	var build = buildsManager.builds()[i];
-	if (build.description == 'lint unlinted recipes' &&
-		build.status == 'pending')
-		needToCreateLintJob = false;
-}
-if (needToCreateLintJob) {
-	// find recipes that need to be linted & create a build if there are some
+portsTree.onPullFinished(function () {
 	var recipesToLint = [];
 	for (var i in portsTree.recipes) {
 		if (!('lint' in portsTree.recipes[i]))
 			recipesToLint.push(i);
 	}
-	if (recipesToLint.length > 0)
-		createJobToLintRecipes(recipesToLint);
-}
-portsTree.onRecipesChanged(function (recipes) {
+	if (recipesToLint.length === 0)
+		return; // nothing changed in the tree
 	builderManager.updateAllHaikuportsTrees(function () {
-		createJobToLintRecipes(recipes);
+		createJobToLintRecipes(recipesToLint);
+		repositoryManager.buildPorts();
 	});
 });
 
@@ -159,7 +150,7 @@ app.get('/api/build/*', function (request, response) {
 		startTime: build.startTime,
 		lastTime: build.lastTime,
 		steps: build.steps,
-		curStep: build.curStep
+		stepsSucceeded: build.stepsSucceeded
 	};
 	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
 	zlib.gzip(JSON.stringify(respJson), function (err, res) {

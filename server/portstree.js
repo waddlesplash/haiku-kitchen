@@ -123,6 +123,8 @@ module.exports = function () {
 			process.exit(3);
 		}
 		this._completeCacheRebuild();
+		for (var i in thisThis._pullFinishedCallbacks)
+			thisThis._pullFinishedCallbacks[i]();
 	};
 	/**
 	  * @private
@@ -167,19 +169,18 @@ module.exports = function () {
 		log('cache created successfully.');
 	}
 
-	this._recipesChangedCallbacks = [];
+	this._pullFinishedCallbacks = [];
 	/**
 	  * @public
 	  * @memberof! PortsTree.prototype
 	  * @description Allows the caller to specify a callback that will be
-	  *   called when the HaikuPorts tree changes. The callback will be passed
-	  *   one argument: an array containing the versioned-names of the new and
-	  *   changed recipes (**NOT** deleted recipes).
+	  *   called after "git pull" is run in the tree.
 	  * @param {function} callback The callback to call when the tree changes.
 	  */
-	this.onRecipesChanged = function (callback) {
-		this._recipesChangedCallbacks.push(callback);
+	this.onPullFinished = function (callback) {
+		this._pullFinishedCallbacks.push(callback);
 	};
+
 	/**
 	  * @public
 	  * @memberof! PortsTree
@@ -212,6 +213,8 @@ module.exports = function () {
 				thisThis._createCache();
 			} else if (output.indexOf('Already up-to-date.') >= 0) {
 				log('git-pull finished, no changes');
+				for (var i in thisThis._pullFinishedCallbacks)
+					thisThis._pullFinishedCallbacks[i]();
 			} else {
 				log('git-pull finished, doing incremental cache update...');
 				var cmd = 'cd cache/haikuports && git diff ' + thisThis._HEAD + '..HEAD --numstat';
@@ -266,8 +269,8 @@ module.exports = function () {
 						changedRecipes.push(r);
 						delete thisThis.recipes[r].lint;
 					}
-					for (var i in thisThis._recipesChangedCallbacks)
-						thisThis._recipesChangedCallbacks[i](changedRecipes);
+					for (var i in thisThis._pullFinishedCallbacks)
+						thisThis._pullFinishedCallbacks[i]();
 					thisThis._updateHEAD();
 					thisThis._writeCache();
 				});
