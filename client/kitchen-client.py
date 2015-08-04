@@ -6,7 +6,7 @@
 # Authors:
 #		Augustin Cavalier <waddlesplash>
 
-import os, sys, socket, ssl, json, base64, subprocess, multiprocessing
+import os, sys, socket, time, ssl, json, base64, subprocess, multiprocessing
 
 confFilename = os.path.dirname(os.path.realpath(__file__)) + '/builder.conf'
 if (not os.path.isfile(confFilename)):
@@ -20,12 +20,15 @@ with open (confFilename, 'r') as confFile:
 		sys.exit(1)
 
 print "Connecting to {0}...".format(conf['ip'])
-sock = socket.socket()
-sock.setblocking(1)
+sock = None
 while True: # loop until we connect
 	try:
+		sock = socket.socket()
+		sock.setblocking(1)
 		sock.connect((conf['ip'], 42458))
 	except:
+		sock.close()
+		time.sleep(5)
 		continue
 	break
 
