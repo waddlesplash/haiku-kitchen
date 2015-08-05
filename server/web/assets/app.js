@@ -140,10 +140,11 @@ function showBuildersPage() {
 				totalBuilders++;
 				var html =
 					'<div class="builder"><span class="heading"> ' + i + ' ';
-				if (data[i].status == 'online') {
+				if (data[i].status != 'offline')
 					onlineBuilders++;
+				if (data[i].status == 'online')
 					html += '<i class="fa fa-plug" style="color:green"></i>';
-				} else if (data[i].status == 'busy')
+				else if (data[i].status == 'busy')
 					html += '<i class="fa fa-dot-circle-o" style="color:orange"></i>';
 				else if (data[i].status == 'broken')
 					html += '<i class="fa fa-ban" style="color:red"></i>';
