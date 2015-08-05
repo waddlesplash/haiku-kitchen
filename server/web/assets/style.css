@@ -239,6 +239,7 @@ div.bordered .heading, div.builder .heading {
 	background: rgba(0, 0, 0, 0.3);
 	border: 1px solid rgba(0, 0, 0, 0.5);
 	margin: 4px 2px;
+	padding: 4px;
 	max-height: 300px;
 }
 #buildSteps li:not(.outputVisible) div.textarea {
