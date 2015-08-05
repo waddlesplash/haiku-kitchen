@@ -231,8 +231,12 @@ module.exports = function (builderManager, buildsManager) {
 				}
 			};
 			var recipes = graph.overallOrder();
-			for (var i in recipes)
-				build.steps.push({command: 'haikuporter --no-dependencies ' + recipes[i]});
+			for (var j in recipes) {
+				var command = 'haikuporter --no-dependencies ' + recipes[j];
+				if (recipes[j].indexOf(arches[i][1]) != -1)
+					command += ' --no-source-packages';
+				build.steps.push({command: command});
+			}
 			build.steps.push({action: function (callback) {
 				// transfer files
 				var filesToTransfer = [];
