@@ -29,6 +29,7 @@ if (!fs.existsSync('data/builders.json')) {
 function DataWriter(transferName, fileName, callback) {
 	this._writing = false;
 	this._done = false;
+	this._failed = false;
 	this._queuedData = [];
 
 	/**
@@ -37,6 +38,8 @@ function DataWriter(transferName, fileName, callback) {
 	  * @description Adds another chunk of (Base64-encoded) data to the write queue.
 	  */
 	this.append = function (data) {
+		if (this._failed)
+			return;
 		this._queuedData.push(data);
 		this._writeQueuedData();
 	};
@@ -47,7 +50,20 @@ function DataWriter(transferName, fileName, callback) {
 	  *  added to the queue.
 	  */
 	this.done = function () {
+		if (this._failed)
+			return;
 		this._done = true;
+		this._writeQueuedData();
+	};
+	/**
+	  * @public
+	  * @memberof! DataWriter.prototype
+	  * @description Marks the transfer as "failed".
+	  */
+	this.failed = function () {
+		if (this._failed)
+			return;
+		this._failed = true;
 		this._writeQueuedData();
 	};
 
@@ -62,11 +78,19 @@ function DataWriter(transferName, fileName, callback) {
 	this._writeQueuedData = function () {
 		if (this._writing)
 			return;
+		if (this._failed) {
+			fs.unlink(fileName, function (err) {});
+			log("file transfer '%s' failed", transferName);
+			this._queuedData = [];
+			if (callback)
+				callback(true);
+			return;
+		}
 		if (this._queuedData.length === 0) {
 			if (this._done) {
-				log("file transfer '%s' complete.", transferName);
+				log("file transfer '%s' complete", transferName);
 				if (callback)
-					callback();
+					callback(false);
 			}
 			return;
 		}
@@ -368,8 +392,17 @@ function Builder(builderManager, name, data) {
 		fileTransferHandler = function (data) {
 			var transferObj = thisThis._runningCommands[fileTransferId];
 			dataHandler(data);
+
+			var failed = false;
+			function sockClosed() {
+				failed = true;
+				transferObj.dataWriter.failed();
+			}
+			if (data === undefined)
+				sock.on('close', sockClosed);
 			for (var i in msgs) {
-				if ('what' in msgs[i]) {
+				if ('what' in msgs[i] || failed) {
+					sock.removeListener('close', sockClosed);
 					sock.removeAllListeners('data');
 					sock.on('data', messageHandler);
 					this._fileTransfer = false;
