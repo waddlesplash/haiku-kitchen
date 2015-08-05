@@ -227,7 +227,10 @@ function showBuildPage(pageData) {
 			$("#statusName").text(getFriendlyNameForStatus(data.status));
 			$("#buildStatus").addClass('status-' + data.status);
 			$("#lastTime").text($.timeago(data.lastTime));
-			$("#stepsText").text(data.stepsSucceeded + '/' + data.steps.length);
+			if ('stepsSucceeded' in data)
+				$("#stepsText").text(data.stepsSucceeded + '/' + data.steps.length);
+			else
+				$("#stepsText").text(data.steps.length);
 
 			if (data.status == 'running')
 				$("#builtOrBuilding").text('building on');
