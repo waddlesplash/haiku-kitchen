@@ -110,14 +110,15 @@ module.exports = function (builderManager) {
 		build.status = 'running';
 		build.lastTime = new Date();
 		build.builder = builderName;
+		build.stepsSucceeded = 0;
+		build.nextStep = 0;
 		var builder = builderManager.builders[builderName];
 		if (builder === undefined) {
 			build.status = 'failed';
 			return;
 		}
 
-		build.stepsSucceeded = 0;
-		build.nextStep = 0;
+		var nextCommand;
 		function commandFinished(exitcode, output) {
 			if (exitcode == 999999999 && output == 'Builder disconnected') {
 				build.status = 'failed';
@@ -165,11 +166,17 @@ module.exports = function (builderManager) {
 				log('build #%d succeeded!', build.id);
 				return;
 			}
-			build.steps[build.nextStep].status = 'running';
-			builder.runCommand(build.steps[build.nextStep].command, commandFinished);
+			nextCommand();
 		}
-		build.steps[build.nextStep].status = 'running';
-		builder.runCommand(build.steps[build.nextStep].command, commandFinished);
+
+		nextCommand = function () {
+			build.steps[build.nextStep].status = 'running';
+			var command = build.steps[build.nextStep].command;
+			if (build.appendJobsFlag && builder.cores > 1)
+				command += ' -j' + builder.cores;
+			builder.runCommand(command, commandFinished);
+		};
+		nextCommand();
 	};
 	/**
 	  * @private
