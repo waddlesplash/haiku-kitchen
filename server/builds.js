@@ -109,7 +109,7 @@ module.exports = function (builderManager) {
 		log('starting build #%d...', build.id);
 		build.status = 'running';
 		build.lastTime = new Date();
-		build.builder = builderName;
+		build.builderName = builderName;
 		build.stepsSucceeded = 0;
 		build.nextStep = 0;
 		var builder = builderManager.builders[builderName];
