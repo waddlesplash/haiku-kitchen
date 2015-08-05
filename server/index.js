@@ -92,6 +92,12 @@ function createJobToLintRecipes(recipes, desc) {
 	buildsManager.addBuild(build);
 }
 portsTree.onPullFinished(function () {
+	var builds = buildsManager.builds();
+	for (var i in builds) {
+		if (builds[i].status == 'pending')
+			return; // don't start any new builds right now
+	}
+
 	var recipesToLint = [];
 	for (var i in portsTree.recipes) {
 		if (!('lint' in portsTree.recipes[i]))
