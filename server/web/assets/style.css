@@ -255,6 +255,9 @@ div.bordered .heading, div.builder .heading {
 .status-running {
 	background-color: yellow !important;
 }
+.status-partially-succeeded {
+	background-color: darkorange !important;
+}
 .status-succeeded {
 	background-color: #8d4 !important;
 }

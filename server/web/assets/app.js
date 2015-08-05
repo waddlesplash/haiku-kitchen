@@ -24,6 +24,8 @@ function getFriendlyNameForStatus(status) {
 		return 'queued';
 	else if (status == 'running')
 		return 'started';
+	else if (status == 'partially-succeeded')
+		return 'partially succeeded';
 	return status;
 }
 

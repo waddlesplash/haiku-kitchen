@@ -157,7 +157,7 @@ module.exports = function (builderManager) {
 			if (build.nextStep == build.steps.length) {
 				delete build.nextStep;
 				if (build.steps.length > build.stepsSucceeded)
-					build.status = 'partially succeeded';
+					build.status = 'partially-succeeded';
 				else
 					build.status = 'succeeded';
 				if (build.onSuccess !== undefined)
