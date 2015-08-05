@@ -170,11 +170,17 @@ module.exports = function (builderManager) {
 		}
 
 		nextCommand = function () {
-			build.steps[build.nextStep].status = 'running';
-			var command = build.steps[build.nextStep].command;
-			if (build.appendJobsFlag && builder.cores > 1)
-				command += ' -j' + builder.cores;
-			builder.runCommand(command, commandFinished);
+			var step = build.steps[build.nextStep];
+			step.status = 'running';
+
+			if (step.action !== undefined) {
+				step.action(commandFinished);
+			} else {
+				var command = step.command;
+				if (build.appendJobsFlag && builder.cores > 1)
+					command += ' -j' + builder.cores;
+				builder.runCommand(command, commandFinished);
+			}
 		};
 		nextCommand();
 	};
