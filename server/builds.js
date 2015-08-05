@@ -225,6 +225,11 @@ module.exports = function (builderManager) {
 	  * @param {Object} build The object of the build to add.
 	  */
 	this.addBuild = function (build) {
+		if (build.steps.length === 0) {
+			log("WARN: build '%s' has no steps, ignoring", build.description);
+			return;
+		}
+
 		build.id = nextBuildId++;
 		build.status = 'pending';
 		build.lastTime = new Date();
