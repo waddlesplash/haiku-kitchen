@@ -40,36 +40,11 @@ var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding
   */
 module.exports = function (builderManager, buildsManager) {
 	/**
-	  * @public
-	  * @memberof! RepositoryManager.prototype
-	  * @description Creates a job to build the specified recipes.
-	  * @param {array} recipes The recipes to build.
-	  * @param {string} desc The description of the build.
-	  */
-	this.createJobToBuildRecipes = function (recipes, desc) {
-		var build = {
-			description: desc ? desc : 'build recipes',
-			architecture: 'x86_64', // TODO
-			steps: [], // TODO: multitask, TODO: -j<NUM>
-			handleResult: function (step, exitcode, output) {
-				return (exitcode === 0);
-			},
-			onSuccess: function () {
-				// TODO: fetch files
-			}
-		};
-		for (var i in recipes) {
-			build.steps.push({command: 'haikuporter --no-dependencies ' + recipes[i]});
-		}
-		buildsManager.addBuild(build);
-	};
-
-	/**
 	  * @private
 	  * @memberof! RepositoryManager.prototype
-	  * @description Private handler for determinePortsToBuld().
+	  * @description Private handler for _dependencyGraphFor().
 	  */
-	this._determinePortsToBuild = function (arch) {
+	this._buildDependencyGraph = function (arch) {
 		function versionGreaterThan (v1, v2) {
 			if (v1 === undefined && v2 !== undefined)
 				return true;
@@ -197,16 +172,78 @@ module.exports = function (builderManager, buildsManager) {
 	  * @description Determines what ports need to be built.
 	  * @param {string} arch The primary architecture to build for.
 	  */
-	this.determinePortsToBuild = function (arch) {
+	this._dependencyGraphFor = function (arch) {
 		try {
-			this._determinePortsToBuild(arch);
+			var graph = this._buildDependencyGraph(arch);
+			graph.overallOrder(); // so we catch any possible exceptions
+			return graph;
 		} catch (e) {
-			log('CATCH: _determinePortsToBuild failed:');
+			log('CATCH: _buildDependencyGraph failed (for arch %s):', arch);
 			log(e);
 			// Don't send the exception to IRC in case it contains sensitive information
 			global.ircNotify("I tried to determine the correct order to build recipes in, but " +
 				"\u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black + "an exception occured" +
 				IRC.colors.reset + " :/. Can someone check the logfiles and figure out why?");
+		}
+	};
+
+	/**
+	  * @public
+	  * @memberof! RepositoryManager.prototype
+	  * @description Creates jobs to build outdated ports.
+	  */
+	this.buildPorts = function () {
+		for (var i in arches) {
+			var graph = this._dependencyGraphFor(arches[i][0]);
+			if (graph === undefined)
+				continue; // exception occured
+			var build = {
+				description: 'build new/updated recipes for ' + arches[i][0],
+				architecture: arches[i][0],
+				steps: [],
+				appendJobsFlag: true,
+				handleResult: function (step, exitcode, output) {
+					if (exitcode !== 0) {
+						step.status = 'failed';
+						var recipeName = step.command.split(' ')[2],
+							deps = graph.dependantsOf(recipeName);
+						for (var i in deps) {
+							for (var j in build.steps) {
+								var stepAt = build.steps[j];
+								if (stepAt.command.split(' ')[2] == deps[i])
+									stepAt.status = 'failed';
+								else if (stepAt.command === undefined)
+									break; // we're past the end of the main steps now
+							}
+						}
+					}
+					return true;
+				},
+				onSuccess: function () {
+					// unused currently
+				}
+			};
+			var recipes = graph.overallOrder();
+			for (var i in recipes)
+				build.steps.push({command: 'haikuporter --no-dependencies ' + recipes[i]});
+			build.steps.push({action: function (callback) {
+				// transfer files
+				var filesToTransfer = [];
+				for (var i in build.steps) {
+					if (build.steps[i].status != 'succeeded')
+						continue;
+					var lines = build.steps[i].output.split('\n');
+					for (var j in lines) {
+						if (lines[j].indexOf('grabbing ') === 0) {
+							filesToTransfer.push(lines[j].split(' ')[6]);
+						}
+					}
+				}
+				//if (exitcode == 999999999 && output == 'Builder disconnected') {}
+				var exitcode = 0, output = '';
+				callback(exitcode, output);
+			}, command: 'transfer files'});
+			buildsManager.addBuild(build);
 		}
 	};
 };
