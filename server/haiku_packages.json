@@ -1,5 +1,7 @@
 [
 	"haiku",
+	"haiku_x86",
+	"haiku_x86_gcc2",
 	"cmd:arp",
 	"cmd:bc",
 	"cmd:chop",
@@ -34,6 +36,8 @@
 	"cmd:xres",
 
 	"haiku_devel",
+	"haiku_x86_devel",
+	"haiku_x86_gcc2_devel",
 
 	"makefile_engine",
 

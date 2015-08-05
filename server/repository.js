@@ -44,7 +44,7 @@ module.exports = function (builderManager, buildsManager) {
 	  * @memberof! RepositoryManager.prototype
 	  * @description Private handler for _dependencyGraphFor().
 	  */
-	this._buildDependencyGraph = function (arch) {
+	this._buildDependencyGraph = function (arch, secondaryArch) {
 		function versionGreaterThan (v1, v2) {
 			if (v1 === undefined && v2 !== undefined)
 				return true;
@@ -77,31 +77,32 @@ module.exports = function (builderManager, buildsManager) {
 			return false;
 		}
 
-		var secondaryArch;
-		for (var i in arches) {
-			if (arches[i][0] == arch)
-				secondaryArch = arches[i][1];
-		}
-
 		// Pass 1: Find the highest-version recipe for the arch.
-		var highestVersionForArch = {};
-		for (var i in global.portsTree.recipes) {
-			var recipe = global.portsTree.recipes[i];
-			if (recipe.architectures.indexOf(arch) == -1)
-				continue;
-			if (highestVersionForArch[recipe.name] === undefined ||
-				versionGreaterThan(highestVersionForArch[recipe.name].version, recipe.version)) {
-				highestVersionForArch[recipe.name] = recipe;
+		function filterInto(object, recipes, variable, architecture) {
+			if (architecture === undefined)
+				return;
+			for (var i in recipes) {
+				var recipe = recipes[i];
+				if (recipe[variable].indexOf(architecture) == -1)
+					continue;
+				if (object[recipe.name] === undefined ||
+					versionGreaterThan(object[recipe.name].version, recipe.version)) {
+					object[recipe.name] = recipe;
+				}
 			}
 		}
+		var highestVersionForArch = {}, highestVersionForSecondaryArch = {};
+		filterInto(highestVersionForArch, global.portsTree.recipes, 'architectures', arch);
+		filterInto(highestVersionForSecondaryArch, global.portsTree.recipes,
+			'secondaryArchitectures', secondaryArch);
 
 		// Pass 2: Replace $secondaryArchSuffix, strip versions from PROVIDES/REQUIRES in prep.
 		// for passing stuff to the depsolver.
 		var processedRecipes = {};
-		function processItem(str, recipe) {
+		function processItem(str, recipe, secondaryArchSuffix) {
 			str = str
-				.replace(/\${secondaryArchSuffix}/g, '')
-				.replace(/\$secondaryArchSuffix\b/g, '')
+				.replace(/\${secondaryArchSuffix}/g, secondaryArchSuffix)
+				.replace(/\$secondaryArchSuffix\b/g, secondaryArchSuffix)
 				.replace(/\$portVersion\b/g, recipe.version)
 				.replace(/\${portVersion}/g, recipe.version)
 				.replace(/\$portName\b/g, recipe.name)
@@ -111,28 +112,32 @@ module.exports = function (builderManager, buildsManager) {
 				str = str.substr(0, ioS);
 			return str.toLowerCase();
 		}
-		for (var i in highestVersionForArch) {
-			var recipe = highestVersionForArch[i];
-			var provides = [], requires = [];
-			for (var i in recipe.provides) {
-				var procd = processItem(recipe.provides[i], recipe);
-				if (procd.length === 0)
-					continue;
-				provides.push(procd);
+		function processHighestVersions(highestVersions, secondaryArchSuffix) {
+			for (var i in highestVersions) {
+				var recipe = highestVersions[i];
+				var provides = [], requires = [];
+				for (var i in recipe.provides) {
+					var procd = processItem(recipe.provides[i], recipe, secondaryArchSuffix);
+					if (procd.length === 0)
+						continue;
+					provides.push(procd);
+				}
+				for (var i in recipe.build_requires) {
+					var procd = processItem(recipe.build_requires[i], recipe, secondaryArchSuffix);
+					if (procd.length === 0)
+						continue;
+					requires.push(procd);
+				}
+				processedRecipes[recipe.name + secondaryArchSuffix] = {
+					name: recipe.name + secondaryArchSuffix,
+					version: recipe.version,
+					provides: provides,
+					requires: requires
+				};
 			}
-			for (var i in recipe.build_requires) {
-				var procd = processItem(recipe.build_requires[i], recipe);
-				if (procd.length === 0)
-					continue;
-				requires.push(procd);
-			}
-			processedRecipes[recipe.name] = {
-				name: recipe.name,
-				version: recipe.version,
-				provides: provides,
-				requires: requires
-			};
 		}
+		processHighestVersions(highestVersionForArch, '');
+		processHighestVersions(highestVersionForSecondaryArch, '_' + secondaryArch);
 
 		// Build dependency list
 		var graph = new DepGraph();
@@ -141,7 +146,8 @@ module.exports = function (builderManager, buildsManager) {
 			graph.addNode(processedRecipes[i].name);
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
-			if (assumeSatisfied.indexOf(recipe.name) != -1)
+			if (assumeSatisfied.indexOf(recipe.name) != -1 ||
+				assumeSatisfied.indexOf(recipe.name.replace('_' + secondaryArch, '')) != -1)
 				continue; // we should already have the deps needed to build this
 
 			for (var j in recipe.requires) {
@@ -172,9 +178,9 @@ module.exports = function (builderManager, buildsManager) {
 	  * @description Determines what ports need to be built.
 	  * @param {string} arch The primary architecture to build for.
 	  */
-	this._dependencyGraphFor = function (arch) {
+	this._dependencyGraphFor = function (arch, secondaryArch) {
 		try {
-			var graph = this._buildDependencyGraph(arch);
+			var graph = this._buildDependencyGraph(arch, secondaryArch);
 			graph.overallOrder(); // so we catch any possible exceptions
 			return graph;
 		} catch (e) {
@@ -194,7 +200,7 @@ module.exports = function (builderManager, buildsManager) {
 	  */
 	this.buildPorts = function () {
 		for (var i in arches) {
-			var graph = this._dependencyGraphFor(arches[i][0]);
+			var graph = this._dependencyGraphFor(arches[i][0], arches[i][1]);
 			if (graph === undefined)
 				continue; // exception occured
 			var build = {
