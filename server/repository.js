@@ -220,7 +220,8 @@ module.exports = function (builderManager, buildsManager) {
 					return true;
 				},
 				onSuccess: function () {
-					// unused currently
+					// This fires after the files are transferred (which happens below)
+
 				}
 			};
 			var recipes = graph.overallOrder();
@@ -239,9 +240,25 @@ module.exports = function (builderManager, buildsManager) {
 						}
 					}
 				}
-				//if (exitcode == 999999999 && output == 'Builder disconnected') {}
-				var exitcode = 0, output = '';
-				callback(exitcode, output);
+				var transferredFiles = 0;
+				for (var i in filesToTransfer) {
+					builderManager.builders[build.builderName].transferFile(filesToTransfer[i],
+						function (failed) {
+							if (failed) {
+								callback(999999999, 'Builder disconnected');
+								return;
+							}
+							transferredFiles++;
+							if (transferredFiles == filesToTransfer.length) {
+								builderManager.builders[build.builderName].runCommand(
+									'rm -rf ~/haikuports/packages/*',
+									function (exitcode, output) {
+										if (exitcode != 999999999)
+											callback(0, '');
+									});
+							}
+						});
+				}
 			}, command: 'transfer files'});
 			buildsManager.addBuild(build);
 		}
