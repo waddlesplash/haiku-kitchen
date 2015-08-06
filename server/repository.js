@@ -289,25 +289,35 @@ module.exports = function (builderManager, buildsManager) {
 						}
 					}
 				}
-				var transferredFiles = 0;
+				var transferredFiles = 0, moveFiles;
 				for (var i in filesToTransfer) {
-					builderManager.builders[build.builderName].transferFile(filesToTransfer[i],
+					var fileToTransfer = filesToTransfer[i];
+					builderManager.builders[build.builderName].transferFile(fileToTransfer,
 						function (failed) {
 							if (failed) {
 								callback(999999999, 'Builder disconnected');
 								return;
 							}
-							var before = 'cache/filetransfer/' + path.basename(filesToTransfer[i]);
-							var after = 'data/packages/' + path.basename(filesToTransfer[i]);
-							fs.rename(before, after, function (err) {
-								transferredFiles++;
-								if (transferredFiles == filesToTransfer.length) {
-									builderManager.builders[build.builderName].runCommand(
-										'rm -rf /boot/home/haikuports/packages/', callback);
-								}
-							});
+							transferredFiles++;
+							if (transferredFiles == filesToTransfer.length)
+								moveFiles();
 						});
 				}
+				moveFiles = function () {
+					var movedFiles = 0;
+					for (var i in filesToTransfer) {
+						var before = 'cache/filetransfer/' + path.basename(filesToTransfer[i]);
+						var after = 'data/packages/' + path.basename(filesToTransfer[i]);
+						log("moving '%s' to '%s'", before, after);
+						fs.rename(before, after, function (err) {
+							movedFiles++;
+							if (movedFiles == filesToTransfer.length) {
+								builderManager.builders[build.builderName].runCommand(
+									'rm -rf /boot/home/haikuports/packages/', callback);
+							}
+						});
+					}
+				};
 			}, command: 'transfer files'});
 			buildsManager.addBuild(build);
 		}
