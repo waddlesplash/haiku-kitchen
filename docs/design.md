@@ -19,11 +19,12 @@ The server is written in object-oriented Node.js. The various components are spl
  * **`portstree.js`** (`PortsTree`), manages the HaikuPorts tree on the server and tracks updates, etc. using `Recipe`.
  * **`builders.js`** (`BuilderManager`), manages connections from builders and builder maintenance (keeping the HaikuPorts/HaikuPorter trees on them up to date, ensuring they have the latest version of Haiku, etc.)
  * **`builds.js`** (`BuildsManager`), accepts build descriptions with list of commands to execute and then picks a builder to run them on, collects the output, and then stores it to a logfile.
+ * **`repository.js`** (`RepositoryManager`), keeps track of the current HPKG files stored in the repository and creates builds to update packages when needed. (This is the module that does the bulk of the work; all the other modules are essentially "grunt tasks" for this one.)
  * And **`web/assets/app.js`** (`webApp`), the client-side portion of the web application, which is responsible for all page generation and navigation.
 
 When the application starts:
  1. It initializes the `PortsTree` object.(If there is no HaikuPorts tree cloned in `cache`, it clones one (synchronously), blocking server startup until it completes the clone and initial cache rebuild.)
- 2. It then creates the `BuilderManager` and `BuildsManager`, which creates the TLS server for builder connections (on port `42458`).
+ 2. It then creates the `BuilderManager` and `BuildsManager`, which creates the TLS server for builder connections (on port `42458`). After that, it creates the `RepositoryManager`, which creates a HTTP server to transfer packages onto the builders with (on port `4753`).
  3. After both of those start successfully, it then starts the HTTP webapp server (which is based on [`expressjs`](http://expressjs.com/)).
  4. It then returns into Node.js's event loop, which then dispatches events to the TLS server, HTTP server, or `PortsTree` update timer as they come in.
 
@@ -40,6 +41,9 @@ The `PortsTree` module does three main things:
 
 ### `BuilderManager`
 The `BuilderManager` module runs the TLS server that the builders connect to, as well as verifying the builders' identity, status, metadata (hrev, # of cores, architechture), the HaikuPorts/HaikuPorter trees and conf files on them, and keeping them up-to-date.
+
+### `RepositoryManager`
+The `RepositoryManager` module enumerates through existing recipes, determines the highest version of that package for each architecture, and then determines which packages need to be (re)built (and the correct dependency order to build them in is). It then creates build jobs to build the packages with, and then transfers the packages out of the machine they were built on and into the "packages" folder.
 
 ### `webApp`
 The web application is not very object-oriented, and is generally simple. It communicates with the server via jQuery AJAX JSON GET requests, and uses the JSON resposes of the server (as well as the static page templates) to generate the webpages.
