@@ -553,7 +553,8 @@ module.exports = function () {
 		}
 
 		var cmd = 'ls ~/haikuporter/ && ls ~/haikuports/';
-		thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
+		var builder = thisThis.builders[builderName];
+		builder.runCommand(cmd, function (exitcode, output) {
 			if (exitcode === 0) {
 				// they're already there, just update them
 				thisThis._updateHaikuportsTreeOn(builderName, treeIsReady);
@@ -563,12 +564,12 @@ module.exports = function () {
 			log('cloning new haikuporter/haikuports trees on %s', builderName);
 			cmd = 'cd ~ && git clone https://bitbucket.org/haikuports/haikuporter.git ' +
 				'--depth=1 && git clone https://bitbucket.org/haikuports/haikuports.git --depth=1';
-			thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
+			builder.runCommand(cmd, function (exitcode, output) {
 				if (exitcode === 0)
 					treeIsReady();
 				else {
 					log('git-clone on builder %s failed: %s', builderName, output.trim());
-					thisThis.builders[builderName].status('broken');
+					builder.status('broken');
 				}
 			});
 
@@ -577,17 +578,21 @@ module.exports = function () {
 				'TREE_PATH=\\"/boot/home/haikuports\\"',
 				'PACKAGER=\\"Haiku Kitchen \\<kitchen@server.fake\\>\\"'
 				];
+			if (builder.data.architecture == 'x86_gcc2')
+				cmd.push('SECONDARY_TARGET_ARCHITECTURES=\\"x86\\"');
+			else if (builder.data.architecture == 'x86')
+				cmd.push('SECONDARY_TARGET_ARCHITECTURES=\\"x86_gcc2\\"');
 			cmd = cmd.join(' >>' + confFile + ' && echo ');
 			cmd = 'rm -f ' + confFile + ' && echo ' + cmd + ' >>' + confFile;
-			thisThis.builders[builderName].runCommand(cmd, function (exitcode, output) {
+			builder.runCommand(cmd, function (exitcode, output) {
 				if (exitcode !== 0) {
 					log('attempt to create haikuports.conf on %s failed: %s',
 						builderName, output.trim());
-					thisThis.builders[builderName].status('broken');
+					builder.status('broken');
 				}
 			});
 		});
-		thisThis.builders[builderName].runCommand('ln -s ~/haikuporter/haikuporter haikuporter');
+		builder.runCommand('ln -s ~/haikuporter/haikuporter haikuporter');
 	};
 
 	this._builderConnectedCallbacks = [];
