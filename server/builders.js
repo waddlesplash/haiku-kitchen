@@ -82,15 +82,19 @@ function DataWriter(transferName, fileName, callback) {
 			fs.unlink(fileName, function (err) {});
 			log("file transfer '%s' failed", transferName);
 			this._queuedData = [];
-			if (callback)
+			if (callback) {
 				callback(true);
+				callback = undefined;
+			}
 			return;
 		}
 		if (this._queuedData.length === 0) {
 			if (this._done) {
 				log("file transfer '%s' complete", transferName);
-				if (callback)
+				if (callback) {
 					callback(false);
+					callback = undefined;
+				}
 			}
 			return;
 		}
@@ -395,6 +399,8 @@ function Builder(builderManager, name, data) {
 
 			var failed = false;
 			function sockClosed() {
+				if (failed)
+					return; // we shouldn't get here...
 				failed = true;
 				transferObj.dataWriter.failed();
 			}
