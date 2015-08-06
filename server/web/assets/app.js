@@ -262,7 +262,7 @@ function showBuildPage(pageData) {
 				else
 					status = 'pending';
 				var item = '<li class="status-' + status + '">';
-				item += step.command;
+				item += step.command.replace('KITCHEN_SERVER_ADDRESS', '');
 				if ('output' in step) {
 					item += '<a href="#" onclick="buildOutput(event);">output</a>';
 					item += '<div class="textarea">' +

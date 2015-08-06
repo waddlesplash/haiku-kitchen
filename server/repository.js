@@ -7,7 +7,8 @@
  */
 
 var log = require('debug')('kitchen:repository'), fs = require('fs'),
-	IRC = require('internet-relay-chat'),
+	path = require('path'), express = require('express'),
+	IRC = require('internet-relay-chat'), glob = require('glob'),
 	DepGraph = require('dependency-graph').DepGraph;
 
 var arches = [
@@ -39,6 +40,13 @@ var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding
   * @param {BuildsManager} buildsManager The global BuildsManager instance.
   */
 module.exports = function (builderManager, buildsManager) {
+	if (!fs.existsSync('data/packages')) {
+		fs.mkdirSync('data/packages');
+	}
+	var app = express();
+	app.listen(4753);
+	app.use(express.static('data/packages/'));
+
 	/**
 	  * @private
 	  * @memberof! RepositoryManager.prototype
@@ -131,8 +139,13 @@ module.exports = function (builderManager, buildsManager) {
 				processedRecipes[recipe.name + secondaryArchSuffix] = {
 					name: recipe.name + secondaryArchSuffix,
 					version: recipe.version,
+					revision: recipe.revision,
 					provides: provides,
-					requires: requires
+					requires: requires,
+					available: fs.existsSync('data/packages/' +
+						recipe.name + '-' +
+						recipe.version + '-' +
+						recipe.revision + '-' + arch + '.hpkg')
 				};
 			}
 		}
@@ -140,10 +153,12 @@ module.exports = function (builderManager, buildsManager) {
 		processHighestVersions(highestVersionForSecondaryArch, '_' + secondaryArch);
 
 		// Build dependency list
-		var graph = new DepGraph();
+		var graph = new DepGraph(), toDownload = [];
 		graph.addNode('broken');
-		for (var i in processedRecipes)
-			graph.addNode(processedRecipes[i].name);
+		for (var i in processedRecipes) {
+			if (!processedRecipes[i].available)
+				graph.addNode(processedRecipes[i].name);
+		}
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
 			if (assumeSatisfied.indexOf(recipe.name) != -1 ||
@@ -157,8 +172,15 @@ module.exports = function (builderManager, buildsManager) {
 				// Iterate over everything and try to find what provides this.
 				var satisfied = false;
 				for (var k in processedRecipes) {
-					if (processedRecipes[k].provides.indexOf(recipe.requires[j]) != -1) {
-						graph.addDependency(recipe.name, processedRecipes[k].name);
+					var curProcdRecipe = processedRecipes[k];
+					if (curProcdRecipe.provides.indexOf(recipe.requires[j]) != -1) {
+						if (curProcdRecipe.available) {
+							if (!curProcdRecipe.willDownload) {
+								toDownload.push(curProcdRecipe);
+								curProcdRecipe.willDownload = true;
+							}
+						} else
+							graph.addDependency(recipe.name, curProcdRecipe.name);
 						satisfied = true;
 						break;
 					}
@@ -169,7 +191,7 @@ module.exports = function (builderManager, buildsManager) {
 		}
 		graph.dependantsOf('broken').forEach(function (n) { graph.removeNode(n); });
 		graph.removeNode('broken');
-		return graph;
+		return {graph: graph, toDownload: toDownload};
 	};
 
 	/**
@@ -180,9 +202,9 @@ module.exports = function (builderManager, buildsManager) {
 	  */
 	this._dependencyGraphFor = function (arch, secondaryArch) {
 		try {
-			var graph = this._buildDependencyGraph(arch, secondaryArch);
-			graph.overallOrder(); // so we catch any possible exceptions
-			return graph;
+			var retval = this._buildDependencyGraph(arch, secondaryArch);
+			retval.graph.overallOrder(); // so we catch any possible exceptions
+			return retval;
 		} catch (e) {
 			log('CATCH: _buildDependencyGraph failed (for arch %s):', arch);
 			log(e);
@@ -200,9 +222,10 @@ module.exports = function (builderManager, buildsManager) {
 	  */
 	this.buildPorts = function () {
 		for (var i in arches) {
-			var graph = this._dependencyGraphFor(arches[i][0], arches[i][1]);
-			if (graph === undefined)
+			var retval = this._dependencyGraphFor(arches[i][0], arches[i][1]);
+			if (retval === undefined)
 				continue; // exception occured
+			var graph = retval.graph;
 			var build = {
 				description: 'build new/updated recipes for ' + arches[i][0],
 				architecture: arches[i][0],
@@ -211,25 +234,41 @@ module.exports = function (builderManager, buildsManager) {
 				handleResult: function (step, exitcode, output) {
 					if (exitcode !== 0) {
 						step.status = 'failed';
-						var recipeName = step.command.split(' ')[2],
-							deps = graph.dependantsOf(recipeName);
+						var splitd = step.command.split(' '),
+							recipeName = splitd[2];
+						if (splitd[0] != 'haikuporter')
+							return false;
+						var deps = graph.dependantsOf(recipeName);
 						for (var i in deps) {
 							for (var j in build.steps) {
-								var stepAt = build.steps[j];
-								if (stepAt.command.split(' ')[2] == deps[i])
+								var stepAt = build.steps[j], splitStepAt = stepAt.command.split(' ');
+								if (splitStepAt[0] != 'haikuporter')
+									continue;
+								if (splitStepAt[2] == deps[i])
 									stepAt.status = 'failed';
-								else if (stepAt.command === undefined)
-									break; // we're past the end of the main steps now
 							}
 						}
 					}
 					return true;
 				},
 				onSuccess: function () {
-					// This fires after the files are transferred (which happens below)
-
+					// unused
 				}
 			};
+
+			if (retval.toDownload.length > 0) {
+				for (var j in retval.toDownload) {
+					var globd = glob.sync('data/packages/' + retval.toDownload[j].name + '*-' +
+						retval.toDownload[j].version + '-' +
+						retval.toDownload[j].revision + '-' + arches[i][0] + '.hpkg');
+					for (var i in globd) {
+						var command = 'cd ~/haikuports/packages; wget KITCHEN_SERVER_ADDRESS:4753/' +
+							path.basename(globd[i]) + '; cd ~';
+					}
+					build.steps.push({command: command});
+				}
+			}
+
 			var recipes = graph.overallOrder();
 			for (var j in recipes) {
 				var command = 'haikuporter --no-dependencies ' + recipes[j];
@@ -258,15 +297,15 @@ module.exports = function (builderManager, buildsManager) {
 								callback(999999999, 'Builder disconnected');
 								return;
 							}
-							transferredFiles++;
-							if (transferredFiles == filesToTransfer.length) {
-								builderManager.builders[build.builderName].runCommand(
-									'rm -rf ~/haikuports/packages/*',
-									function (exitcode, output) {
-										if (exitcode != 999999999)
-											callback(0, '');
-									});
-							}
+							var before = 'cache/filetransfer/' + path.basename(filesToTransfer[i]);
+							var after = 'data/packages/' + path.basename(filesToTransfer[i]);
+							fs.rename(before, after, function (err) {
+								transferredFiles++;
+								if (transferredFiles == filesToTransfer.length) {
+									builderManager.builders[build.builderName].runCommand(
+										'rm -rf /boot/home/haikuports/packages/', callback);
+								}
+							});
 						});
 				}
 			}, command: 'transfer files'});

@@ -63,6 +63,7 @@ while True:
 			reply['output'] = ''
 			print "Executing command '" + msg['command'] + "'."
 			command = msg['command']
+			command = command.replace('KITCHEN_SERVER_ADDRESS', conf['ip'])
 			if (not ('&&' in command or 'cd' in command)):
 				command = 'stdbuf -o L ' + command
 			proc = subprocess.Popen(command, shell = True,
