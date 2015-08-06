@@ -11,8 +11,8 @@ var log = require('debug')('kitchen:portstree'), fs = require('fs'),
 	Recipe = require('./recipe.js');
 
 if (!shell.which('git')) {
-	log('FATAL: git must be installed.');
-	process.exit(2);
+	console.error('FATAL: git must be installed.');
+	process.exit(1);
 }
 
 /**

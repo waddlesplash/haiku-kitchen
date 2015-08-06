@@ -10,7 +10,7 @@ var log = require('debug')('kitchen:builders'), fs = require('fs'),
 	path = require('path'), crypto = require('crypto');
 
 if (!fs.existsSync('data/builders.json')) {
-	log('FATAL: no builders configuration file! set one up using kitchen.js.');
+	console.error('FATAL: no builders configuration file! set one up using kitchen.js.');
 	process.exit(1);
 }
 
