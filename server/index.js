@@ -205,6 +205,10 @@ if (fs.existsSync('data/irc.json')) {
 				"of silicon gates, screaming along at billions of cycles per second.");
 			reply("And you?");
 			break;
+		case 'update-all-builders':
+			builderManager.updateAllBuilders();
+			reply("Update started.");
+			break;
 		default:
 			reply("I ain't got a clue what you're talkin' 'bout!");
 			break;
