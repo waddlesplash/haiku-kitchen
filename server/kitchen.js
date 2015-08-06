@@ -40,16 +40,16 @@ case 'builder:create':
 	}
 	if (!('owner' in argv)) {
 		console.error("Builder must have a named owner.");
-		process.exit(2);
+		process.exit(1);
 	}
 	var name = argv.name;
 	if (name.match(/[^A-Z0-9a-z_-]/)) {
 		console.error('Illegal characters in builder name, valid ones are [A-Z][a-z][0-9]-_.');
-		process.exit(3);
+		process.exit(1);
 	}
 	if (name in builders) {
 		console.error("Builder '%s' already exists!", name);
-		process.exit(4);
+		process.exit(1);
 	}
 	var clientConf = {name: name};
 	builders[name] = {owner: argv.owner};
@@ -60,7 +60,7 @@ case 'builder:create':
 			return crypto.randomBytes(len);
 		} catch (ex) {
 			console.error('FATAL: getting entropy failed: ', ex);
-			process.exit(5);
+			process.exit(1);
 		}
 	}
 
@@ -86,7 +86,7 @@ case 'builder:destroy':
 	var name = process.argv[3];
 	if (!(name in builders)) {
 		console.error("Builder '%s' does not exist!", name);
-		process.exit(7);
+		process.exit(1);
 	}
 	delete builders[name];
 	fs.writeFileSync('data/builders.json', JSON.stringify(builders));
@@ -114,6 +114,6 @@ case 'config:irc':
 
 default:
 	console.error('Invalid command specified!');
-	process.exit(8);
+	process.exit(1);
 	break;
 }
