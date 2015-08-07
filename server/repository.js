@@ -394,10 +394,15 @@ module.exports = function (builderManager, buildsManager) {
 						}
 					}
 				}
+				if (filesToTransfer.length === 0) {
+					log("No files to transfer?!");
+					callback(-1, "No files to transfer?!");
+					return;
+				}
+
 				var transferredFiles = 0, moveFiles;
 				for (var i in filesToTransfer) {
-					var fileToTransfer = filesToTransfer[i];
-					builderManager.builders[build.builderName].transferFile(fileToTransfer,
+					builderManager.builders[build.builderName].transferFile(filesToTransfer[i],
 						function (failed) {
 							if (failed) {
 								callback(999999999, 'Builder disconnected');
