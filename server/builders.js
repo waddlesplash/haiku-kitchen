@@ -13,6 +13,10 @@ if (!fs.existsSync('data/builders.json')) {
 	console.error('FATAL: no builders configuration file! set one up using kitchen.js.');
 	process.exit(1);
 }
+if (!fs.existsSync('data/server.key')) {
+	console.error('FATAL: no server keyfile! set one up using OpenSSL.');
+	process.exit(1);
+}
 
 /**
   * @class
