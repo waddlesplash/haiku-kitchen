@@ -78,9 +78,10 @@ module.exports = function (builderManager, buildsManager) {
 	  * @description Rebuilds the package repository for the specified arch, hrev, and ports.
 	  */
 	this._updatePackageRepo = function (arch, hrev, ports) {
-		var packages = [], fetchablePorts = ports.keys().length, fetchedPorts = 0,
-			afterPackagesAreFetched, path, afterPackagesAreSymlinked, afterPackageRepoExits;
+		var packages = [], fetchablePorts = 0, fetchedPorts = 0,
+			afterPackagesAreFetched, repoPath, afterPackagesAreSymlinked, afterPackageRepoExits;
 		for (var i in ports) {
+			fetchablePorts++;
 			glob('data/packages/' + hpkgName(ports[i], arch, true), function (err, files) {
 				packages = packages.concat(files);
 				fetchedPorts++;
@@ -93,15 +94,15 @@ module.exports = function (builderManager, buildsManager) {
 				fs.mkdirSync('data/repository/' + arch);
 				fs.mkdirSync('data/repository/' + arch + '/by_hrev');
 			}
-			path = 'data/repository/' + arch + '/by_hrev/hrev' + hrev + '/';
-			if (fs.existsSync(path)) {
-				shell.rm('-rf', path);
+			repoPath = 'data/repository/' + arch + '/by_hrev/hrev' + hrev + '/';
+			if (fs.existsSync(repoPath)) {
+				shell.rm('-rf', repoPath);
 			}
-			fs.mkdirSync(path);
+			fs.mkdirSync(repoPath);
 
 			var symlinkedPackages = 0;
 			for (var i in packages) {
-				fs.symlink(packages[i], path + 'packages/' + path.basename(packages[i]),
+				fs.symlink(packages[i], repoPath + 'packages/' + path.basename(packages[i]),
 					function (err) {
 						if (err) {
 							log('FAILED symlink:');
@@ -120,13 +121,13 @@ module.exports = function (builderManager, buildsManager) {
 				.replace('$HREV$', hrev)
 				.replace('$ARCH$', arch)
 				.replace('$URL$', ''); // TODO: is this even necessary?
-			fs.writeFile(path + 'repo.info', repoInfo, function (err) {
+			fs.writeFile(repoPath + 'repo.info', repoInfo, function (err) {
 				if (err) {
 					log('FAILED to write repo.info:');
 					log(err);
 					return;
 				}
-				var cmd = 'package_repo create "' + path + 'repo.info" "' + path + 'packages"/*.hpkg';
+				var cmd = 'package_repo create "' + repoPath + 'repo.info" "' + repoPath + 'packages"/*.hpkg';
 				exec(cmd, {silent: true}, function (code, output) {
 					if (code !== 0) {
 						log("FAILED to run 'package_repo': (exited with: %d): %s", code, output);
@@ -137,19 +138,19 @@ module.exports = function (builderManager, buildsManager) {
 			});
 		};
 		afterPackageRepoExits = function () {
-			exec('sha256sum ' + path + 'repo', {silent: true}, function (code, output) {
+			exec('sha256sum ' + repoPath + 'repo', {silent: true}, function (code, output) {
 				if (code !== 0) {
 					log("FAILED to run 'sha256sum': (exited with: %d): %s", code, output);
 					return;
 				}
-				fs.writeFile(path + 'repo.sha256', output, function (err) {
+				fs.writeFile(repoPath + 'repo.sha256', output, function (err) {
 					if (err) {
 						log('FAILED to write repo.sha256:');
 						log(err);
 						return;
 					}
 					shell.rm('-rf', 'data/repository/' + arch + '/current/');
-					fs.symlink(path, 'data/repository/' + arch + '/current');
+					fs.symlink(repoPath, 'data/repository/' + arch + '/current');
 				});
 			});
 		};
