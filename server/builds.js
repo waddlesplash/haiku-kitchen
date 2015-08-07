@@ -174,7 +174,7 @@ module.exports = function (builderManager) {
 			step.status = 'running';
 
 			if (step.action !== undefined) {
-				step.action(commandFinished);
+				step.action(build, commandFinished);
 			} else {
 				var command = step.command;
 				if (build.appendJobsFlag && builder.cores > 1)

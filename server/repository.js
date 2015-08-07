@@ -381,7 +381,7 @@ module.exports = function (builderManager, buildsManager) {
 					command += ' --no-source-packages';
 				build.steps.push({command: command});
 			}
-			build.steps.push({action: function (callback) {
+			build.steps.push({action: function (build, callback) {
 				// transfer files
 				var filesToTransfer = [];
 				for (var i in build.steps) {
