@@ -119,7 +119,7 @@ module.exports = function (builderManager, buildsManager) {
 			repoInfo = repoInfo
 				.replace('$HREV$', hrev)
 				.replace('$ARCH$', arch)
-				.replace('$URL$', '');
+				.replace('$URL$', ''); // TODO: is this even necessary?
 			fs.writeFile(path + 'repo.info', repoInfo, function (err) {
 				if (err) {
 					log('FAILED to write repo.info:');
@@ -149,7 +149,6 @@ module.exports = function (builderManager, buildsManager) {
 						return;
 					}
 					shell.rm('-rf', 'data/repository/' + arch + '/current/');
-					fs.mkdirSync('data/repository/' + arch + '/current/');
 					fs.symlink(path, 'data/repository/' + arch + '/current');
 				});
 			});
