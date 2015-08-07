@@ -78,13 +78,13 @@ module.exports = function (builderManager, buildsManager) {
 	  * @description Rebuilds the package repository for the specified arch, hrev, and ports.
 	  */
 	this._updatePackageRepo = function (arch, hrev, ports) {
-		var packages = [], fetchedPackages = 0, afterPackagesAreFetched,
-			path, afterPackagesAreSymlinked, afterPackageRepoExits;
+		var packages = [], fetchablePorts = ports.keys().length, fetchedPorts = 0,
+			afterPackagesAreFetched, path, afterPackagesAreSymlinked, afterPackageRepoExits;
 		for (var i in ports) {
-			glob('data/packages/' + hpkgName(port, arch, true), function (err, files) {
+			glob('data/packages/' + hpkgName(ports[i], arch, true), function (err, files) {
 				packages = packages.concat(files);
-				fetchedPackages++;
-				if (fetchedPackages == packages.length)
+				fetchedPorts++;
+				if (fetchedPorts == fetchablePorts)
 					afterPackagesAreFetched();
 			});
 		}
@@ -356,9 +356,10 @@ module.exports = function (builderManager, buildsManager) {
 					}
 					return true;
 				},
+				extradata_ports: retval.ports,
 				onSuccess: function () {
-					thisThis._updatePackageRepo(build.architecture,
-						builderManager.builders[build.builderName].hrev, retval.ports);
+					thisThis._updatePackageRepo(this.architecture,
+						builderManager.builders[this.builderName].hrev, this.extradata_ports);
 				}
 			};
 
