@@ -1,0 +1,6 @@
+name NAME_GOES_HERE
+vendor "Your Name"
+summary "Some repository name (for Haiku hrev$HREV$)"
+priority 1
+url $URL$
+architecture $ARCH$

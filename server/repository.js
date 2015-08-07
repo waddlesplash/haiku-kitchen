@@ -7,7 +7,7 @@
  */
 
 var log = require('debug')('kitchen:repository'), fs = require('fs'),
-	path = require('path'), express = require('express'),
+	shell = require('shelljs'), path = require('path'), express = require('express'),
 	IRC = require('internet-relay-chat'), glob = require('glob'),
 	DepGraph = require('dependency-graph').DepGraph;
 
@@ -29,6 +29,19 @@ var assumeSatisfied = [
 ];
 var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding: 'UTF-8'});
 
+if (!shell.which('package_repo')) {
+	console.error('FATAL: package_repo (Haiku tool) must be installed.');
+	process.exit(1);
+}
+if (!shell.which('sha256sum')) {
+	console.error('FATAL: sha256sum (from coreutils) must be installed.');
+	process.exit(1);
+}
+if (!fs.existsSync('data/repo.info.template')) {
+	console.error('FATAL: there must be a "data/repo.info.template" file.');
+	process.exit(1);
+}
+
 /**
   * @class RepositoryManager
   * @description Creates a new RepositoryManager object.
@@ -43,9 +56,104 @@ module.exports = function (builderManager, buildsManager) {
 	if (!fs.existsSync('data/packages')) {
 		fs.mkdirSync('data/packages');
 	}
+	if (!fs.existsSync('data/repository')) {
+		fs.mkdirSync('data/repository');
+	}
+	fs.existsSync('data/irc.json')
 	var app = express();
 	app.listen(4753);
 	app.use(express.static('data/packages/'));
+	var thisThis = this;
+
+	function hpkgName(recipe, arch, globbable) {
+		return recipe.name + (globbable ? '*-' : '-') +
+			recipe.version + '-' +
+			recipe.revision + '-' + arch + '.hpkg';
+	}
+
+	/**
+	  * @private
+	  * @memberof! RepositoryManager.prototype
+	  * @description Rebuilds the package repository for the specified arch, hrev, and ports.
+	  */
+	this._updatePackageRepo = function (arch, hrev, ports) {
+		var packages = [], fetchedPackages = 0, afterPackagesAreFetched,
+			path, afterPackagesAreSymlinked, afterPackageRepoExits;
+		for (var i in ports) {
+			glob('data/packages/' + hpkgName(port, arch, true), function (err, files) {
+				packages = packages.concat(files);
+				fetchedPackages++;
+				if (fetchedPackages == packages.length)
+					afterPackagesAreFetched();
+			});
+		}
+		afterPackagesAreFetched = function () {
+			if (!fs.existsSync('data/repository/' + arch)) {
+				fs.mkdirSync('data/repository/' + arch);
+				fs.mkdirSync('data/repository/' + arch + '/by_hrev');
+			}
+			path = 'data/repository/' + arch + '/by_hrev/hrev' + hrev + '/';
+			if (fs.existsSync(path)) {
+				shell.rm('-rf', path);
+			}
+			fs.mkdirSync(path);
+
+			var symlinkedPackages = 0;
+			for (var i in packages) {
+				fs.symlink(packages[i], path + 'packages/' + path.basename(packages[i]),
+					function (err) {
+						if (err) {
+							log('FAILED symlink:');
+							log(err);
+							return;
+						}
+						symlinkedPackages++;
+						if (symlinkedPackages == packages.length)
+							afterPackagesAreSymlinked();
+					});
+			}
+		};
+		afterPackagesAreSymlinked = function () {
+			var repoInfo = fs.readFileSync('data/repo.info.template', {encoding: 'UTF-8'});
+			repoInfo = repoInfo
+				.replace('$HREV$', hrev)
+				.replace('$ARCH$', arch)
+				.replace('$URL$', '');
+			fs.writeFile(path + 'repo.info', repoInfo, function (err) {
+				if (err) {
+					log('FAILED to write repo.info:');
+					log(err);
+					return;
+				}
+				var cmd = 'package_repo create "' + path + 'repo.info" "' + path + 'packages"/*.hpkg';
+				exec(cmd, {silent: true}, function (code, output) {
+					if (code !== 0) {
+						log("FAILED to run 'package_repo': (exited with: %d): %s", code, output);
+						return;
+					}
+					afterPackageRepoExits();
+				});
+			});
+		};
+		afterPackageRepoExits = function () {
+			exec('sha256sum ' + path + 'repo', {silent: true}, function (code, output) {
+				if (code !== 0) {
+					log("FAILED to run 'sha256sum': (exited with: %d): %s", code, output);
+					return;
+				}
+				fs.writeFile(path + 'repo.sha256', output, function (err) {
+					if (err) {
+						log('FAILED to write repo.sha256:');
+						log(err);
+						return;
+					}
+					shell.rm('-rf', 'data/repository/' + arch + '/current/');
+					fs.mkdirSync('data/repository/' + arch + '/current/');
+					fs.symlink(path, 'data/repository/' + arch + '/current');
+				});
+			});
+		};
+	};
 
 	/**
 	  * @private
@@ -142,10 +250,7 @@ module.exports = function (builderManager, buildsManager) {
 					revision: recipe.revision,
 					provides: provides,
 					requires: requires,
-					available: fs.existsSync('data/packages/' +
-						recipe.name + '-' +
-						recipe.version + '-' +
-						recipe.revision + '-' + arch + '.hpkg')
+					available: fs.existsSync('data/packages/' + hpkgName(recipe, arch))
 				};
 			}
 		}
@@ -191,7 +296,7 @@ module.exports = function (builderManager, buildsManager) {
 		}
 		graph.dependantsOf('broken').forEach(function (n) { graph.removeNode(n); });
 		graph.removeNode('broken');
-		return {graph: graph, toDownload: toDownload};
+		return {graph: graph, toDownload: toDownload, ports: processedRecipes};
 	};
 
 	/**
@@ -252,15 +357,15 @@ module.exports = function (builderManager, buildsManager) {
 					return true;
 				},
 				onSuccess: function () {
-					// unused
+					thisThis._updatePackageRepo(build.architecture,
+						builderManager.builders[build.builderName].hrev, retval.ports);
 				}
 			};
 
 			if (retval.toDownload.length > 0) {
 				for (var j in retval.toDownload) {
-					var globd = glob.sync('data/packages/' + retval.toDownload[j].name + '*-' +
-						retval.toDownload[j].version + '-' +
-						retval.toDownload[j].revision + '-' + arches[i][0] + '.hpkg');
+					var globd = glob.sync('data/packages/' + hpkgName(retval.toDownload[j],
+						arches[i][0], true));
 					for (var i in globd) {
 						var command = 'cd ~/haikuports/packages; wget KITCHEN_SERVER_ADDRESS:4753/' +
 							path.basename(globd[i]) + '; cd ~';
