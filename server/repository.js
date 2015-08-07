@@ -60,12 +60,12 @@ module.exports = function (builderManager, buildsManager) {
 	if (!fs.existsSync('data/repository')) {
 		fs.mkdirSync('data/repository');
 	}
-	fs.existsSync('data/irc.json')
 	var app = express();
 	app.listen(4753);
 	app.use(express.static('data/packages/'));
 	var thisThis = this;
 
+	/* Returns the HPKG name, optionally in glob syntax */
 	function hpkgName(recipe, arch, globbable) {
 		return recipe.name + (globbable ? '*-' : '-') +
 			recipe.version + '-' +
