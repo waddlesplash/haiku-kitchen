@@ -18,7 +18,7 @@
     "express": "^4.13.3",
     "glob": "^5.0.14",
     "internet-relay-chat": "^1.1.5",
-    "minimist": "^1.1.2",
+    "minimist": "^1.1.3",
     "nodeunit": "^0.9.1",
     "npid": "^0.4.0",
     "shelljs": "^0.5.1"
