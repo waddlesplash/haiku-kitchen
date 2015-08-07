@@ -12,6 +12,7 @@ var log = require('debug')('kitchen:repository'), fs = require('fs'),
 	DepGraph = require('dependency-graph').DepGraph;
 
 var arches = [
+	['any'],
 	['x86_gcc2', 'x86'],
 	['x86', 'x86_gcc2'],
 	['x86_64']
