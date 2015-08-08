@@ -94,15 +94,17 @@ module.exports = function (builderManager, buildsManager) {
 				fs.mkdirSync('data/repository/' + arch);
 				fs.mkdirSync('data/repository/' + arch + '/by_hrev');
 			}
-			repoPath = 'data/repository/' + arch + '/by_hrev/hrev' + hrev + '/';
+			repoPath = process.cwd() + '/data/repository/' + arch + '/by_hrev/hrev' + hrev + '/';
 			if (fs.existsSync(repoPath)) {
 				shell.rm('-rf', repoPath);
 			}
 			fs.mkdirSync(repoPath);
+			fs.mkdirSync(repoPath + 'packages');
 
 			var symlinkedPackages = 0;
 			for (var i in packages) {
-				fs.symlink(packages[i], repoPath + 'packages/' + path.basename(packages[i]),
+				fs.symlink(process.cwd() + '/' + packages[i],
+					repoPath + 'packages/' + path.basename(packages[i]),
 					function (err) {
 						if (err) {
 							log('FAILED symlink:');
