@@ -130,7 +130,7 @@ module.exports = function (builderManager, buildsManager) {
 					return;
 				}
 				var cmd = 'package_repo create "' + repoPath + 'repo.info" "' + repoPath + 'packages"/*.hpkg';
-				exec(cmd, {silent: true}, function (code, output) {
+				shell.exec(cmd, {silent: true}, function (code, output) {
 					if (code !== 0) {
 						log("FAILED to run 'package_repo': (exited with: %d): %s", code, output);
 						return;
@@ -140,7 +140,7 @@ module.exports = function (builderManager, buildsManager) {
 			});
 		};
 		afterPackageRepoExits = function () {
-			exec('sha256sum ' + repoPath + 'repo', {silent: true}, function (code, output) {
+			shell.exec('sha256sum ' + repoPath + 'repo', {silent: true}, function (code, output) {
 				if (code !== 0) {
 					log("FAILED to run 'sha256sum': (exited with: %d): %s", code, output);
 					return;
