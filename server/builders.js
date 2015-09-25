@@ -566,8 +566,8 @@ module.exports = function () {
 			}
 			// didn't exit with 0, probably means there's no haikuports/haikuporter
 			log('cloning new haikuporter/haikuports trees on %s', builderName);
-			cmd = 'cd ~ && git clone https://bitbucket.org/haikuports/haikuporter.git ' +
-				'--depth=1 && git clone https://bitbucket.org/haikuports/haikuports.git --depth=1';
+			cmd = 'cd ~ && git clone https://github.com/haikuports/haikuporter.git ' +
+				'--depth=1 && git clone https://github.com/haikuports/haikuports.git --depth=1';
 			builder.runCommand(cmd, function (exitcode, output) {
 				if (exitcode === 0)
 					treeIsReady();
