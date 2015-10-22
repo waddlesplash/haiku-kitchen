@@ -20,7 +20,6 @@
     "internet-relay-chat": "^1.1.5",
     "minimist": "^1.2.0",
     "nodeunit": "^0.9.1",
-    "npid": "^0.4.0",
     "shelljs": "^0.5.3"
   },
   "devDependencies": {

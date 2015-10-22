@@ -9,8 +9,6 @@
 // Attempt a graceful shutdown on exceptions
 process.on('uncaughtException', function (err) {
 	console.error(err.stack);
-	if (global.pid)
-		global.pid.remove();
 	process.exit(999);
 });
 
@@ -34,12 +32,6 @@ if (!('port' in argv)) {
 }
 
 log("starting up");
-
-/*! ------------------------- PIDfile ------------------------- */
-if (!('ignorepid' in argv)) {
-	global.pid = require('npid').create('data/kitchen.pid');
-	global.pid.removeOnExit();
-}
 
 /*! --------------------- haikuports tree --------------------- */
 var portsTree = global.portsTree = new PortsTree();
