@@ -73,6 +73,10 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			recipe.revision + '-' + arch + '.hpkg';
 	}
 
+	var anyArchPackages = [];
+	// Technically this is a race condition, but the 'any' build will always complete
+	// before the other builds, so it should be OK.
+
 	/**
 	  * @private
 	  * @memberof! RepositoryManager.prototype
@@ -81,6 +85,14 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	this._updatePackageRepo = function (arch, hrev, ports) {
 		var packages = [], fetchablePorts = 0, fetchedPorts = 0,
 			afterPackagesAreFetched, repoPath, afterPackagesAreSymlinked, afterPackageRepoExits;
+		if (arch != 'any') {
+			if (anyArchPackages.size() == 0) {
+				global.ircNotify("ASSERT FAILED - anyArchPackages was empty?! arch " + arch);
+				log("ASSERT FAILED - anyArchPackages was empty?! arch " + arch);
+				return;
+			}
+			packages = packages.concat(anyArchPackages);
+		}
 		for (var i in ports) {
 			fetchablePorts++;
 			glob('data/packages/' + hpkgName(ports[i], arch, true), function (err, files) {
@@ -91,6 +103,13 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			});
 		}
 		afterPackagesAreFetched = function () {
+			if (arch == 'any') {
+				// You can't have a repo with arch='any', so we store the list
+				// of "any" arch packages and return.
+				anyArchPackages = packages;
+				return;
+			}
+
 			if (!fs.existsSync('data/repository/' + arch)) {
 				fs.mkdirSync('data/repository/' + arch);
 				fs.mkdirSync('data/repository/' + arch + '/by_hrev');
