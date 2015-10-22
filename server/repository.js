@@ -86,7 +86,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		var packages = [], fetchablePorts = 0, fetchedPorts = 0,
 			afterPackagesAreFetched, repoPath, afterPackagesAreSymlinked, afterPackageRepoExits;
 		if (arch != 'any') {
-			if (anyArchPackages.size() == 0) {
+			if (anyArchPackages.length == 0) {
 				global.ircNotify("ASSERT FAILED - anyArchPackages was empty?! arch " + arch);
 				log("ASSERT FAILED - anyArchPackages was empty?! arch " + arch);
 				return;
