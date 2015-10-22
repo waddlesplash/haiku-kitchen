@@ -335,9 +335,10 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			log('CATCH: _buildDependencyGraph failed (for arch %s):', arch);
 			log(e);
 			// Don't send the exception to IRC in case it contains sensitive information
-			global.ircNotify("I tried to determine the correct order to build recipes in, but " +
-				"\u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black + "an exception occured" +
-				IRC.colors.reset + " :/. Can someone check the logfiles and figure out why?");
+			global.ircNotify("I tried to determine the correct order to build recipes " +
+				" (for arch '" + IRC.colors.cyan + arch + IRC.colors.reset + "'), but " +
+				IRC.colors.darkRed + "an exception occured" + IRC.colors.reset +
+				" :/. Can someone check the logfiles and figure out why?");
 		}
 	};
 

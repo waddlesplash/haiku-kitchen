@@ -44,16 +44,15 @@ var builderManager = global.builderManager = new BuilderManager(),
 
 builderManager.onBuilderBroken(function (name) {
 	ircNotify("Oh no! Builder '" + name +
-		"' \u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black +
-		IRC.colors.bold + 'BROKE' + IRC.colors.reset + '. Somebody contact "' +
-		builderManager.builders[name].data.owner + '" so they can fix it!');
+		IRC.colors.darkRed + IRC.colors.bold + 'BROKE' + IRC.colors.reset +
+		'. Somebody contact "' + builderManager.builders[name].data.owner +
+		'" so they can fix it!');
 });
 buildsManager.onBuildFinished(function (build) {
 	if (build.status != 'succeeded') {
 		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "')" +
-			" \u0003" + IRC.rawColors.lightRed + "," + IRC.rawColors.black +
-			IRC.colors.bold + 'FAILED' + IRC.colors.reset + ' on step ' +
-			(build.curStep + 1) + ' out of ' + build.steps.length +
+			IRC.colors.darkRed + IRC.colors.bold + 'FAILED' + IRC.colors.reset +
+			' on step ' + (build.curStep + 1) + ' out of ' + build.steps.length +
 			'. Someone please investigate!');
 	}
 });
