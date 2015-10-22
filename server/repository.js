@@ -52,8 +52,9 @@ if (!fs.existsSync('data/repo.info.template')) {
   *
   * @param {BuilderManager} builderManager The global BuilderManager instance.
   * @param {BuildsManager} buildsManager The global BuildsManager instance.
+  * @param {PortsTree} portsTree The global PortsTree instance.
   */
-module.exports = function (builderManager, buildsManager) {
+module.exports = function (builderManager, buildsManager, portsTree) {
 	if (!fs.existsSync('data/packages')) {
 		fs.mkdirSync('data/packages');
 	}
@@ -211,8 +212,8 @@ module.exports = function (builderManager, buildsManager) {
 			}
 		}
 		var highestVersionForArch = {}, highestVersionForSecondaryArch = {};
-		filterInto(highestVersionForArch, global.portsTree.recipes, 'architectures', arch);
-		filterInto(highestVersionForSecondaryArch, global.portsTree.recipes,
+		filterInto(highestVersionForArch, portsTree.recipes, 'architectures', arch);
+		filterInto(highestVersionForSecondaryArch, portsTree.recipes,
 			'secondaryArchitectures', secondaryArch);
 
 		// Pass 2: Replace $secondaryArchSuffix, strip versions from PROVIDES/REQUIRES in prep.

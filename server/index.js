@@ -112,7 +112,7 @@ portsTree.onPullFinished(function () {
 });
 
 var repositoryManager = global.repositoryManager =
-	new RepositoryManager(builderManager, buildsManager);
+	new RepositoryManager(builderManager, buildsManager, portsTree);
 
 /*! ------------------------ webserver ------------------------ */
 var express = require('express'), app = global.app = express();
