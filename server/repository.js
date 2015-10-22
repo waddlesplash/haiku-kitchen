@@ -246,10 +246,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				.replace(/\${portVersion}/g, recipe.version)
 				.replace(/\$portName\b/g, recipe.name)
 				.replace(/\${portName}/g, recipe.name);
-			var ioS = str.indexOf(' ');
-			if (ioS != -1)
-				str = str.substr(0, ioS);
-			return str.toLowerCase();
+			var byWhitespace = str.split(/\s/);
+			return byWhitespace[0].toLowerCase();
 		}
 		function processHighestVersions(highestVersions, secondaryArchSuffix) {
 			for (var i in highestVersions) {
