@@ -33,7 +33,7 @@ deleting will still reference the builder by name.
 ### Running (development mode)
 Install the `npm` dependencies with `npm install`, and then run:
 ```
-DEBUG=* node index.js --port=8081 --ignorepid
+DEBUG=* node index.js --port=8081
 ```
 On Windows, use `set DEBUG=*` on a separate line instead.
 
