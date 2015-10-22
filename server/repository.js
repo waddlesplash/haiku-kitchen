@@ -121,9 +121,9 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		afterPackagesAreSymlinked = function () {
 			var repoInfo = fs.readFileSync('data/repo.info.template', {encoding: 'UTF-8'});
 			repoInfo = repoInfo
-				.replace('$HREV$', hrev)
-				.replace('$ARCH$', arch)
-				.replace('$URL$', ''); // TODO: is this even necessary?
+				.replace(/\$HREV\$/g, hrev)
+				.replace(/\$ARCH\$/g, arch)
+				.replace(/\$URL\$/g, ''); // TODO: is this even necessary?
 			fs.writeFile(repoPath + 'repo.info', repoInfo, function (err) {
 				if (err) {
 					log('FAILED to write repo.info:');
