@@ -22,10 +22,15 @@ module.exports = function (builderManager) {
 		fs.mkdirSync('data/logs');
 		builds = {};
 	} else {
-		nextBuildId = JSON.parse(fs.readFileSync('data/nextBuildId.json'),
-			{encoding: 'UTF-8'}).id;
-		builds = JSON.parse(fs.readFileSync('data/builds.json'),
-			{encoding: 'UTF-8'});
+		try {
+			nextBuildId = JSON.parse(fs.readFileSync('data/nextBuildId.json'),
+				{encoding: 'UTF-8'}).id;
+			builds = JSON.parse(fs.readFileSync('data/builds.json'),
+				{encoding: 'UTF-8'});
+		} catch (e) {
+			nextBuildId = 1;
+			builds = {};
+		}
 		// Remove all pending builds, as we can't use them because they don't
 		// have the callbacks in them
 		for (var i in builds) {
