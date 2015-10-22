@@ -14,6 +14,11 @@ var webApp = function () {
 /** (constant) The possible architectures, in order. */
 var kArchitectures = ['x86', 'x86_64', 'x86_gcc2', 'arm', 'ppc'];
 
+function loc() {
+	// window.location minus hash.
+	return window.location.href.replace(window.location.hash, "");
+}
+
 /**
   * Get the user-friendly name for the specified status.
   * @param {string} status The status to return a friendly name for.
@@ -70,7 +75,7 @@ function pageLoadingFailed(err) {
   * @param {function} func The function to call with the fetched page.
   */
 function fetchPageAndCall(pageUrl, func) {
-	$.ajax(pageUrl, {dataType: 'text'})
+	$.ajax(loc() + pageUrl, {dataType: 'text'})
 		.done(function (data) {
 			func(data);
 		})
@@ -93,7 +98,7 @@ function showHomePage(data) {
   * @param {string} data The fetched recipes pagedata.
   */
 function showRecipesPage(pageData) {
-	$.ajax('/api/recipes')
+	$.ajax(loc() + '/api/recipes')
 		.done(function (data) {
 			$('#pageContentsBody').html(pageData);
 
@@ -135,7 +140,7 @@ function showRecipesPage(pageData) {
   * @param {string} data The fetched builders pagedata.
   */
 function showBuildersPage() {
-	$.ajax('/api/builders')
+	$.ajax(loc() + '/api/builders')
 		.done(function (data) {
 			var onlineBuilders = 0, totalBuilders = 0;
 			for (var i in data) {
@@ -174,7 +179,7 @@ function showBuildersPage() {
   * @param {string} data The fetched builds pagedata.
   */
 function showBuildsPage() {
-	$.ajax('/api/builds')
+	$.ajax(loc() + '/api/builds')
 		.done(function (data) {
 			$("#pageContentsBody").html('<table id="buildsTable"></table>');
 			for (var i in data) {
@@ -219,7 +224,7 @@ global.buildOutput = buildOutput;
   * @param {string} pageData The fetched builds pagedata.
   */
 function showBuildPage(pageData) {
-	$.ajax('/api/build/' + /[^/]*$/.exec(window.location.hash)[0])
+	$.ajax(loc() + '/api/build/' + /[^/]*$/.exec(window.location.hash)[0])
 		.done(function (data) {
 			$('#pageContentsBody').html(pageData);
 
