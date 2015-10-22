@@ -16,8 +16,8 @@
     "debug": "^2.2.0",
     "dependency-graph": "^0.4.1",
     "express": "^4.13.3",
-    "glob": "^5.0.14",
-    "internet-relay-chat": "^1.1.5",
+    "glob": "^5.0.15",
+    "internet-relay-chat": "^1.1.6",
     "minimist": "^1.2.0",
     "nodeunit": "^0.9.1",
     "shelljs": "^0.5.3"
