@@ -43,14 +43,14 @@ var builderManager = global.builderManager = new BuilderManager(),
 	buildsManager = global.buildsManager = new BuildsManager(builderManager);
 
 builderManager.onBuilderBroken(function (name) {
-	ircNotify("Oh no! Builder '" + name +
+	ircNotify("Oh no! Builder '" + name + "' " +
 		IRC.colors.darkRed + IRC.colors.bold + 'BROKE' + IRC.colors.reset +
 		'. Somebody contact "' + builderManager.builders[name].data.owner +
 		'" so they can fix it!');
 });
 buildsManager.onBuildFinished(function (build) {
 	if (build.status != 'succeeded') {
-		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "')" +
+		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "') " +
 			IRC.colors.darkRed + IRC.colors.bold + 'FAILED' + IRC.colors.reset +
 			' on step ' + (build.curStep + 1) + ' out of ' + build.steps.length +
 			'. Someone please investigate!');
@@ -155,7 +155,7 @@ app.get('/api/build/*', function (request, response) {
 	});
 });
 app.use(express.static('web'));
-app.listen(argv.port);
+app.listen(argv.port, 'localhost', function () {});
 
 /*! --------------------------- IRC --------------------------- */
 var bot, ircConfig, toPost = [];
