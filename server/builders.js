@@ -596,7 +596,7 @@ module.exports = function () {
 				}
 			});
 		});
-		builder.runCommand('ln -s ~/haikuporter/haikuporter haikuporter');
+		builder.runCommand('ln -s ~/haikuporter/haikuporter /system/non-packaged/bin/haikuporter');
 	};
 
 	this._builderConnectedCallbacks = [];
