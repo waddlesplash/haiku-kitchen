@@ -155,7 +155,7 @@ app.get('/api/build/*', function (request, response) {
 	});
 });
 app.use(express.static('web'));
-app.listen(argv.port, 'localhost', function () {});
+app.listen(argv.port, 'localhost');
 
 /*! --------------------------- IRC --------------------------- */
 var bot, ircConfig, toPost = [];
