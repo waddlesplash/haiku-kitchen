@@ -367,6 +367,7 @@ function Builder(builderManager, name, data) {
 				try {
 					json = JSON.parse(lines[i]);
 				} catch (e) {
+					log("got invalid JSON: '%s'", lines[i]);
 					continue;
 				}
 				msgs.push(json);
@@ -473,8 +474,10 @@ module.exports = function () {
 		var cmd = 'pkgman full-sync -y';
 		for (var builderName in thisThis.builders) {
 			var builder = thisThis.builders[builderName];
-			if (builder.status() != 'online')
+			if (builder.status() != 'online') {
+				log('not updating builder \'%s\' as its status is not \'online\'', builder.name);
 				continue;
+			}
 			builder.status('busy');
 			builder._sendMessage({what: 'command',
 				command: 'pkgman full-sync -y', replyWith: 'updateResult'});

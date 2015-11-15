@@ -111,7 +111,6 @@ module.exports = function (builderManager) {
 	  * @param {Object} build The object of the build to run.
 	  */
 	this._runBuildOn = function (builderName, build) {
-		log('starting build #%d...', build.id);
 		build.status = 'running';
 		build.lastTime = new Date();
 		build.builderName = builderName;
@@ -119,13 +118,21 @@ module.exports = function (builderManager) {
 		build.nextStep = 0;
 		var builder = builderManager.builders[builderName];
 		if (builder === undefined) {
+			log("failed to start build #%d because builder '%s' was undefined", builderName);
 			build.status = 'failed';
 			return;
 		}
+		if (builder.status() != 'online') {
+			log("failed to start build #%d because builder '%s' had status '%s'", builder.status());
+			build.status = 'failed';
+			return;
+		}
+		builder.status('busy');
+		log('starting build #%d on builder \'%s\'...', build.id, builderName);
 
 		var nextCommand;
 		function commandFinished(exitcode, output) {
-			if (exitcode == 999999999 && output == 'Builder disconnected') {
+			if (output == 'Builder disconnected') {
 				build.status = 'failed';
 				log('build #%d failed because the builder disconnected', build.id);
 				thisThis._buildFinished(builderName, build);
@@ -207,7 +214,7 @@ module.exports = function (builderManager) {
 				var builder = builderManager.builders[availableBuilderNames[j]];
 				if (builder.status() != 'online')
 					continue;
-				if (arch !== undefined && builder.data.architecture !== arch)
+				if (arch !== 'any' && arch !== undefined && builder.data.architecture !== arch)
 					continue;
 				return j;
 			}
@@ -215,23 +222,13 @@ module.exports = function (builderManager) {
 		}
 
 		for (var i in builds) {
-			var index = nextAvailableBuilderIndex();
-			if (index === undefined)
-				return;
 			if (builds[i].status != 'pending')
 				continue;
-			if (builds[i].architecture == 'any') {
-				this._runBuildOn(availableBuilderNames[index], builds[i]);
-				builderManager.builders[availableBuilderNames[index]].status('busy');
-				delete availableBuilderNames[index];
-			} else {
-				index = nextAvailableBuilderIndex(builds[i].architecture);
-				if (index !== undefined) {
-					this._runBuildOn(availableBuilderNames[index], builds[i]);
-					builderManager.builders[availableBuilderNames[index]].status('busy');
-					delete availableBuilderNames[index];
-				}
-			}
+			var index = nextAvailableBuilderIndex(builds[i].architecture);
+			if (index === undefined)
+				return;
+			this._runBuildOn(availableBuilderNames[index], builds[i]);
+			delete availableBuilderNames[index];
 		}
 	};
 
@@ -252,7 +249,6 @@ module.exports = function (builderManager) {
 		build.status = 'pending';
 		build.lastTime = new Date();
 		builds[build.id] = build;
-		this._writeBuilds();
 		log("build #%d ('%s') created", build.id, build.description);
 		this._tryRunBuilds();
 	};
