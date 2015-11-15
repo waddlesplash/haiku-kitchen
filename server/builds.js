@@ -31,10 +31,10 @@ module.exports = function (builderManager) {
 			nextBuildId = 1;
 			builds = {};
 		}
-		// Remove all pending builds, as we can't use them because they don't
-		// have the callbacks in them
+		// Remove all pending/running builds, as we can't use them because
+		// they don't have the callbacks & proper states in them
 		for (var i in builds) {
-			if (builds[i].status == 'pending')
+			if (builds[i].status == 'pending' || builds[i].status == 'running')
 				delete builds[i];
 		}
 		// Reset nextBuildId
