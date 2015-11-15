@@ -200,6 +200,10 @@ if (fs.existsSync('data/irc.json')) {
 			builderManager.updateAllBuilders();
 			reply("Update started.");
 			break;
+		case 'help':
+			reply("Available commands: 'help' (displays this), "
+				+ "'update-all-builders' (initates a pkgman full-sync on all idle builders)");
+			break;
 		default:
 			reply("I ain't got a clue what you're talkin' 'bout!");
 			break;
