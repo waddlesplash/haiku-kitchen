@@ -395,8 +395,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					for (var i in globd) {
 						var command = 'cd ~/haikuports/packages; wget KITCHEN_SERVER_ADDRESS:4753/' +
 							path.basename(globd[i]) + '; cd ~';
+						build.steps.push({command: command});
 					}
-					build.steps.push({command: command});
 				}
 			}
 
