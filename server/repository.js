@@ -282,11 +282,16 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		processHighestVersions(highestVersionForSecondaryArch, '_' + secondaryArch);
 
 		// Build dependency list
-		var graph = new DepGraph(), toDownload = [];
+		var graph = new DepGraph(), toDownload = [], addedToGraph = 0;
 		graph.addNode('broken');
 		for (var i in processedRecipes) {
-			if (!processedRecipes[i].available)
+			if (!processedRecipes[i].available) {
 				graph.addNode(processedRecipes[i].name);
+				addedToGraph++;
+			}
+		}
+		if (addedToGraph === 0) {
+			throw "no recipes not already built on current version";
 		}
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
