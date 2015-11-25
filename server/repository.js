@@ -18,12 +18,15 @@ var arches = [
 	['x86_64']
 ];
 var assumeSatisfied = [
-	// Assume these packages are already available in some form.
+	// Assume these packages are already available in some form; they're
+	// included in the default install so that should be a safe assumption
 	'gcc',
 	'binutils',
 	'libtool',
 	'gawk',
 	'make',
+	'bison',
+	'flex',
 	'grep',
 	'sed',
 	'tar'
