@@ -458,6 +458,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					}
 				};
 			}, command: 'transfer files'});
+			build.steps.push({command: 'rm -rf ~/haikuports/packages && mkdir ~/haikuports/packages'});
 			buildsManager.addBuild(build);
 		}
 	};
