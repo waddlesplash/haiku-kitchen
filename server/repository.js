@@ -393,6 +393,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					var globd = glob.sync('data/packages/' + hpkgName(retval.toDownload[j],
 						arches[i][0], true));
 					for (var i in globd) {
+						if (globd[i].indexOf("source.hpkg") != -1)
+							continue;
 						var command = 'cd ~/haikuports/packages; wget KITCHEN_SERVER_ADDRESS:4753/' +
 							path.basename(globd[i]) + '; cd ~';
 						build.steps.push({command: command});
