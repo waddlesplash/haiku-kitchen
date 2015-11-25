@@ -402,7 +402,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				}
 			}
 
-			build.steps.push({command: 'find ~/haikuports -type d -name "work-*" -exec rm -rf {} \; || true'});
+			build.steps.push({command: 'find ~/haikuports -type d -name "work-*" -exec rm -rf {} \\; || true'});
 			var recipes = graph.overallOrder();
 			for (var j in recipes) {
 				var command = 'haikuporter --no-dependencies ' + recipes[j];
