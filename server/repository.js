@@ -452,13 +452,12 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 							movedFiles++;
 							if (movedFiles == filesToTransfer.length) {
 								builderManager.builders[build.builderName].runCommand(
-									'rm -rf /boot/home/haikuports/packages/', callback);
+									'rm -rf ~/haikuports/packages && mkdir ~/haikuports/packages/', callback);
 							}
 						});
 					}
 				};
 			}, command: 'transfer files'});
-			build.steps.push({command: 'rm -rf ~/haikuports/packages && mkdir ~/haikuports/packages'});
 			buildsManager.addBuild(build);
 		}
 	};
