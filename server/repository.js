@@ -367,16 +367,17 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				steps: [],
 				appendJobsFlag: true,
 				handleResult: function (step, exitcode, output) {
+					// Always called as "build.handleResult", so 'this' will be 'build'
 					if (exitcode !== 0) {
 						step.status = 'failed';
 						var splitd = step.command.split(' '),
 							recipeName = splitd[2];
 						if (splitd[0] != 'haikuporter')
 							return false;
-						var deps = graph.dependantsOf(recipeName);
+						var deps = this.extradata_graph.dependantsOf(recipeName);
 						for (var i in deps) {
-							for (var j in build.steps) {
-								var stepAt = build.steps[j], splitStepAt = stepAt.command.split(' ');
+							for (var j in this.steps) {
+								var stepAt = this.steps[j], splitStepAt = stepAt.command.split(' ');
 								if (splitStepAt[0] != 'haikuporter')
 									continue;
 								if (splitStepAt[2] == deps[i])
@@ -387,6 +388,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					return true;
 				},
 				extradata_ports: retval.ports,
+				extradata_graph: graph,
 				onSuccess: function () {
 					thisThis._updatePackageRepo(this.architecture,
 						builderManager.builders[this.builderName].hrev, this.extradata_ports);
