@@ -224,9 +224,12 @@ module.exports = function (builderManager) {
 		for (var i in builds) {
 			if (builds[i].status != 'pending')
 				continue;
+			log("trying to schedule build %d", builds[i]);
 			var index = nextAvailableBuilderIndex(builds[i].architecture);
-			if (index === undefined)
-				return;
+			if (index === undefined) {
+				log("failed to schedule build: no matching builders");
+				continue;
+			}
 			this._runBuildOn(availableBuilderNames[index], builds[i]);
 			delete availableBuilderNames[index];
 		}
