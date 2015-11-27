@@ -16,7 +16,10 @@ var kArchitectures = ['x86', 'x86_64', 'x86_gcc2', 'arm', 'ppc'];
 
 function loc() {
 	// window.location minus hash.
-	return window.location.href.replace(window.location.hash, "");
+	var ret = window.location.href.replace(window.location.hash, "");
+	if (ret[ret.length - 1] == '/')
+		return ret.slice(0, -1);
+	return ret;
 }
 
 /**
