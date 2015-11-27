@@ -428,8 +428,8 @@ function Builder(builderManager, name, data) {
 		};
 
 		sock.on('data', messageHandler);
-		sock.on('close', function () {
-			log("builder '%s' disconnected", thisThis.name);
+
+		var closeHandler = function () {
 			thisThis._socket = null;
 			thisThis._status = 'offline';
 			delete thisThis.hrev;
@@ -440,6 +440,15 @@ function Builder(builderManager, name, data) {
 					callback(999999999, 'Builder disconnected');
 				delete thisThis._runningCommands[i];
 			}
+		};
+		sock.on('error', function (err) {
+			log("builder '%s' socket errored: %s", err);
+			try { sock.destroy(); } catch (e) {}
+			closeHandler();
+		});
+		sock.on('close', function () {
+			log("builder '%s' disconnected", thisThis.name);
+			closeHandler();
 		});
 	};
 }

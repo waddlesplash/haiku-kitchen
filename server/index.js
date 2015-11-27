@@ -224,6 +224,7 @@ if (fs.existsSync('data/irc.json')) {
 	bot.on('ctcp-version', function (line) {
 		bot.ctcpReply(line.sender.nick, 'VERSION npm.internet-relay-chat + Kitchen');
 	});
+	bot.on('error', function (e) {});
 	bot.connect();
 }
 global.ircNotify = function (say) {
