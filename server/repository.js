@@ -32,11 +32,11 @@ var assumeSatisfied = [
 	'tar'
 ];
 var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding: 'UTF-8'});
-
+/*
 if (!shell.which('package_repo')) {
 	console.error('FATAL: package_repo (Haiku tool) must be installed.');
 	process.exit(1);
-}
+}*/
 if (!shell.which('sha256sum')) {
 	console.error('FATAL: sha256sum (from coreutils) must be installed.');
 	process.exit(1);

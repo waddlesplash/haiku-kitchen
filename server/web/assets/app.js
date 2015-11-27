@@ -78,7 +78,7 @@ function pageLoadingFailed(err) {
   * @param {function} func The function to call with the fetched page.
   */
 function fetchPageAndCall(pageUrl, func) {
-	$.ajax(loc() + pageUrl, {dataType: 'text'})
+	$.ajax(loc() + '/' + pageUrl, {dataType: 'text'})
 		.done(function (data) {
 			func(data);
 		})
