@@ -229,7 +229,7 @@ module.exports = function (builderManager) {
 				continue;
 			var index = nextAvailableBuilderIndex(builds[i].architecture);
 			if (index === undefined) {
-				failed.push(build.id);
+				failed.push(builds[i].id);
 				continue;
 			}
 			this._runBuildOn(availableBuilderNames[index], builds[i]);
