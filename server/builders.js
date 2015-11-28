@@ -426,12 +426,17 @@ function Builder(builderManager, name, data) {
 				transferObj.dataWriter.append(msgs[i].data);
 			}
 		};
-
 		sock.on('data', messageHandler);
 
+		var pinger = function () {
+			// Just send something to make sure the socket is alive
+			thisThis._sendMessage({what: 'getCores'});
+		};
+		var intervalObject = setInterval(pinger, 10 * 60 * 1000);
 		var closeHandler = function () {
 			thisThis._socket = null;
 			thisThis._status = 'offline';
+			clearInterval(intervalObject);
 			delete thisThis.hrev;
 			delete thisThis.cores;
 			for (var i in thisThis._runningCommands) {
@@ -442,8 +447,8 @@ function Builder(builderManager, name, data) {
 			}
 		};
 		sock.on('error', function (err) {
-			log("builder '%s' socket errored: %s", err);
-			try { sock.destroy(); } catch (e) {}
+			log("builder '%s' socket errored: %s", thisThis.name, err);
+			try { thisThis._socket.destroy(); } catch (e) {}
 			closeHandler();
 		});
 		sock.on('close', function () {

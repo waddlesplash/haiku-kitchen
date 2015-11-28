@@ -133,9 +133,11 @@ module.exports = function (builderManager) {
 		var nextCommand;
 		function commandFinished(exitcode, output) {
 			if (output == 'Builder disconnected') {
-				build.status = 'failed';
-				log('build #%d failed because the builder disconnected', build.id);
-				thisThis._buildFinished(builderName, build);
+				build.lastTime = new Date();
+				delete build.builderName;
+				delete build.stepsSucceeded;
+				build.status = 'pending';
+				log('build #%d failed because the builder disconnected; resetting to pending', build.id);
 				return;
 			}
 
@@ -224,7 +226,6 @@ module.exports = function (builderManager) {
 		for (var i in builds) {
 			if (builds[i].status != 'pending')
 				continue;
-			log("trying to schedule build %d", builds[i]);
 			var index = nextAvailableBuilderIndex(builds[i].architecture);
 			if (index === undefined) {
 				log("failed to schedule build: no matching builders");

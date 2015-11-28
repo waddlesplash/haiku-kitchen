@@ -52,7 +52,7 @@ buildsManager.onBuildFinished(function (build) {
 	if (build.status != 'succeeded') {
 		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "') " +
 			IRC.colors.darkRed + IRC.colors.bold + 'FAILED' + IRC.colors.reset +
-			' on step ' + (build.curStep + 1) + ' out of ' + build.steps.length +
+			' on step ' + (build.nextStep + 1) + ' out of ' + build.steps.length +
 			'. Someone please investigate!');
 	}
 });

@@ -202,7 +202,6 @@ module.exports = function () {
 		if (!fs.existsSync('cache/recipes.json'))
 			return thisThis._createCache();
 
-		log('running git-pull...');
 		shell.exec('cd cache/haikuports && git pull --ff-only', {silent: true}, function (code, output) {
 			if (code) {
 				log('git-pull failed: ' + output);
@@ -212,7 +211,6 @@ module.exports = function () {
 				log('recreating cache...');
 				thisThis._createCache();
 			} else if (output.indexOf('Already up-to-date.') >= 0) {
-				log('git-pull finished, no changes');
 				for (var i in thisThis._pullFinishedCallbacks)
 					thisThis._pullFinishedCallbacks[i]();
 			} else {
