@@ -111,33 +111,36 @@ module.exports = function (builderManager) {
 	  * @param {Object} build The object of the build to run.
 	  */
 	this._runBuildOn = function (builderName, build) {
-		build.status = 'running';
-		build.lastTime = new Date();
-		build.builderName = builderName;
-		build.stepsSucceeded = 0;
-		build.nextStep = 0;
 		var builder = builderManager.builders[builderName];
 		if (builder === undefined) {
 			log("failed to start build #%d because builder '%s' was undefined", builderName);
-			build.status = 'failed';
 			return;
 		}
 		if (builder.status() != 'online') {
 			log("failed to start build #%d because builder '%s' had status '%s'", builder.status());
-			build.status = 'failed';
+			return;
+		}
+		log('starting build #%d on builder \'%s\'...', build.id, builderName);
+		build.lastTime = new Date();
+		build.builderName = builderName;
+		build.stepsSucceeded = 0;
+		build.nextStep = 0;
+		this._resumeBuild(build);
+	};
+	this._resumeBuild = function (build) {
+		var builder = builderManager.builders[build.builderName];
+		if (builder.status() != 'online') {
+			log("failed to resume build #%d because builder '%s' had status '%s'", builder.status());
 			return;
 		}
 		builder.status('busy');
-		log('starting build #%d on builder \'%s\'...', build.id, builderName);
+		build.status = 'running';
 
 		var nextCommand;
 		function commandFinished(exitcode, output) {
 			if (output == 'Builder disconnected') {
-				build.lastTime = new Date();
-				delete build.builderName;
-				delete build.stepsSucceeded;
-				build.status = 'pending';
-				log('build #%d failed because the builder disconnected; resetting to pending', build.id);
+				build.status = 'stalled';
+				log('build #%d stalled because the builder disconnected', build.id);
 				return;
 			}
 
@@ -155,7 +158,7 @@ module.exports = function (builderManager) {
 			if (!res) {
 				build.status = 'failed';
 				step.status = 'failed';
-				thisThis._buildFinished(builderName, build);
+				thisThis._buildFinished(build.builderName, build);
 				log('build #%d failed on step %d', build.id, build.nextStep);
 				return;
 			}
@@ -176,7 +179,7 @@ module.exports = function (builderManager) {
 					build.status = 'succeeded';
 				if (build.onSuccess !== undefined)
 					build.onSuccess();
-				thisThis._buildFinished(builderName, build);
+				thisThis._buildFinished(build.builderName, build);
 				log('build #%d succeeded!', build.id);
 				return;
 			}
@@ -221,6 +224,15 @@ module.exports = function (builderManager) {
 				return j;
 			}
 			return undefined;
+		}
+
+		// Take care of 'stalled' builds first
+		for (var i in builds) {
+			if (builds[i].status != 'stalled')
+				continue;
+			if (availableBuilderNames.indexOf(builds[i].builderName) != -1)
+				this._resumeBuild(builds[i]);
+			delete availableBuilderNames[availableBuilderNames.indexOf(builds[i].builderName)];
 		}
 
 		var failed = [];
