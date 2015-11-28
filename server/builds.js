@@ -223,17 +223,21 @@ module.exports = function (builderManager) {
 			return undefined;
 		}
 
+		var failed = [];
 		for (var i in builds) {
 			if (builds[i].status != 'pending')
 				continue;
 			var index = nextAvailableBuilderIndex(builds[i].architecture);
 			if (index === undefined) {
-				log("failed to schedule build: no matching builders");
+				failed.push(build.id);
 				continue;
 			}
 			this._runBuildOn(availableBuilderNames[index], builds[i]);
 			delete availableBuilderNames[index];
 		}
+		if (failed.length > 0)
+			log("failed to schedule build%s %s: no matching builders",
+				failed.length > 1 ? "s" : "", JSON.stringify(failed));
 	};
 
 	/**
