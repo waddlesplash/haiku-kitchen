@@ -129,7 +129,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				fs.symlink(process.cwd() + '/' + packages[i],
 					repoPath + 'packages/' + path.basename(packages[i]),
 					function (err) {
-						if (err) {
+						if (err && err.code != 'EEXIST') {
 							log('FAILED symlink:');
 							log(err);
 							return;
@@ -295,9 +295,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		}
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
-			if (assumeSatisfied.indexOf(recipe.name) != -1 ||
-				assumeSatisfied.indexOf(recipe.name.replace('_' + secondaryArch, '')) != -1)
-				continue; // we should already have the deps needed to build this
+			if (recipe.available)
+				continue; // already available in binary form
 
 			for (var j in recipe.requires) {
 				if (haikuProvides.indexOf(recipe.requires[j]) != -1)
@@ -313,8 +312,15 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 								toDownload.push(curProcdRecipe);
 								curProcdRecipe.willDownload = true;
 							}
-						} else
-							graph.addDependency(recipe.name, curProcdRecipe.name);
+						} else {
+							if (assumeSatisfied.indexOf(curProcdRecipe.name) != -1 ||
+								assumeSatisfied.indexOf(curProcdRecipe.name.replace(
+									'_' + secondaryArch, '')) != -1) {
+								// assume this dep is satisfied
+							} else {
+								graph.addDependency(recipe.name, curProcdRecipe.name);
+							}
+						}
 						satisfied = true;
 						break;
 					}
