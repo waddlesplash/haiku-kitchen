@@ -509,8 +509,6 @@ module.exports = function () {
 	  */
 	this._updateHaikuportsTreeOn = function (builderName, callback) {
 		var builder = this.builders[builderName];
-		if (builder.status() != 'online')
-			return;
 		log('updating haikuporter/haikuports trees on %s', builderName);
 		var cmd = 'cd ~/haikuporter && git pull && cd ~/haikuports && git pull && cd ~';
 		builder.status('busy');
@@ -609,7 +607,9 @@ module.exports = function () {
 					log('attempt to create haikuports.conf on %s failed: %s',
 						builderName, output.trim());
 					builder.status('broken');
+					return;
 				}
+				builder.status('online');
 			});
 		});
 		builder.runCommand('ln -s ~/haikuporter/haikuporter /system/non-packaged/bin/haikuporter');
