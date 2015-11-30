@@ -206,7 +206,7 @@ module.exports = function () {
 			if (code) {
 				log('git-pull failed: ' + output);
 				if (output.indexOf('Failed to connect') >= 0 ||
-					output.indexOf('Could not resolve host') >= 0)
+					output.indexOf('resolve host') >= 0)
 					return;
 				log('recreating cache...');
 				thisThis._createCache();
