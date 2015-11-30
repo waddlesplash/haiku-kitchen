@@ -94,8 +94,7 @@ module.exports = function (builderManager) {
 	  * @param {Object} build The object of the build that just finished.
 	  */
 	this._buildFinished = function (builderName, build) {
-		if (builderManager.builders[builderName].status() == 'busy')
-			builderManager.builders[builderName].status('online');
+		builderManager.builders[builderName].status('online');
 		build.startTime = build.lastTime;
 		build.lastTime = new Date();
 		this._writeBuilds();
@@ -179,8 +178,8 @@ module.exports = function (builderManager) {
 					build.status = 'succeeded';
 				if (build.onSuccess !== undefined)
 					build.onSuccess();
-				thisThis._buildFinished(build.builderName, build);
 				log('build #%d succeeded!', build.id);
+				thisThis._buildFinished(build.builderName, build);
 				return;
 			}
 			nextCommand();

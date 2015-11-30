@@ -226,7 +226,6 @@ function Builder(builderManager, name, data) {
 				this.data.flavor = 'pure';
 			else
 				this.data.flavor = 'unknown';
-			this.status('online');
 			break;
 
 		case 'updateResult':
