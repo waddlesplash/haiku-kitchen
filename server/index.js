@@ -146,11 +146,24 @@ app.get('/api/build/*', function (request, response) {
 		description: build.description,
 		startTime: build.startTime,
 		lastTime: build.lastTime,
-		steps: build.steps,
+		steps: [],
 		stepsSucceeded: build.stepsSucceeded
 	};
+	for (var i in build.steps)
+		respJson.steps.push({
+			command: build.steps[i].command,
+			output: !!build.steps[i].output,
+			status: build.steps[i].status
+		});
 	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
 	zlib.gzip(JSON.stringify(respJson), function (err, res) {
+		response.end(res);
+	});
+});
+app.get('/api/buildstep/*', function (request, response) {
+	var b = request.url.split('/'), build = b[b.length - 2], step = b[b.length - 1];
+	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
+	zlib.gzip(JSON.stringify(buildsManager.builds()[build].steps[step]), function (err, res) {
 		response.end(res);
 	});
 });

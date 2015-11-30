@@ -206,6 +206,24 @@ function showBuildsPage() {
 		.fail(pageLoadingFailed);
 }
 
+function loadOutput(liNode, aNode) {
+	var textarea = $("div.textarea", liNode);
+	$(aNode).html('loading...');
+
+	$.ajax(loc() + '/api/buildstep/' + /[^/]*$/.exec(window.location.hash)[0]
+		+ '/' + liNode.getAttribute('step'))
+		.done(function (data) {
+			textarea.html(data.output.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/\r*\n/g, '<br>')
+				.replace(/ /g, '&nbsp;')
+				.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;') +
+				'<br><span>Command exited with code ' + data.exitcode + '.</span>');
+			$(aNode).html('output');
+			aNode.click();
+		});
+}
 /**
   * Event handler called when one of the `output` links on the Build page
   *   is clicked.
@@ -213,6 +231,13 @@ function showBuildsPage() {
   */
 function buildOutput(e) {
 	e.preventDefault();
+	if ($(e.target).html().indexOf('load') === 0) {
+		if ($(e.target).html().indexOf('loading') === 0)
+			return;
+		loadOutput(e.target.parentNode, e.target);
+		return;
+	}
+
 	var li = $(e.target.parentNode);
 	li.toggleClass('outputVisible');
 	if (li.hasClass('outputVisible'))
@@ -269,20 +294,11 @@ function showBuildPage(pageData) {
 					status = step.status;
 				else
 					status = 'pending';
-				var item = '<li class="status-' + status + '">';
+				var item = '<li class="status-' + status + '" step="' + i + '">';
 				item += step.command.replace('KITCHEN_SERVER_ADDRESS', '');
-				if ('output' in step) {
-					item += '<a href="#" onclick="buildOutput(event);">output</a>';
-					item += '<div class="textarea">' +
-						step.output
-							.replace(/&/g, '&amp;')
-							.replace(/</g, '&lt;')
-							.replace(/>/g, '&gt;')
-							.replace(/\r*\n/g, '<br>')
-							.replace(/ /g, '&nbsp;')
-							.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;') +
-						'<br><span>Command exited with code ' + step.exitcode + '.</span>' +
-						'</div>';
+				if (step.output) {
+					item += '<a href="#" onclick="buildOutput(event);">load</a>';
+					item += '<div class="textarea"></div>';
 				}
 				item += '</li>';
 				$("#buildSteps").append(item);
