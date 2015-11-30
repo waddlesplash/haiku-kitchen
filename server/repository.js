@@ -282,16 +282,11 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		processHighestVersions(highestVersionForSecondaryArch, '_' + secondaryArch);
 
 		// Build dependency list
-		var graph = new DepGraph(), toDownload = [], addedToGraph = 0;
+		var graph = new DepGraph(), toDownload = [];
 		graph.addNode('broken');
 		for (var i in processedRecipes) {
-			if (!processedRecipes[i].available) {
+			if (!processedRecipes[i].available)
 				graph.addNode(processedRecipes[i].name);
-				addedToGraph++;
-			}
-		}
-		if (addedToGraph === 0) {
-			throw "no recipes not already built on current version";
 		}
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
@@ -343,7 +338,9 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	this._dependencyGraphFor = function (arch, secondaryArch) {
 		try {
 			var retval = this._buildDependencyGraph(arch, secondaryArch);
-			retval.graph.overallOrder(); // so we catch any possible exceptions
+			var itms = retval.graph.overallOrder(); // so we catch any possible exceptions
+			if (itms.length === 0)
+				throw "no recipes not already built on current version";
 			return retval;
 		} catch (e) {
 			log('CATCH: _buildDependencyGraph failed (for arch %s):', arch);
