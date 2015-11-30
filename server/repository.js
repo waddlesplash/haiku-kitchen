@@ -73,12 +73,9 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	function hpkgName(recipe, arch, globbable) {
 		return recipe.name + (globbable ? '*-' : '-') +
 			recipe.version + '-' +
-			recipe.revision + '-' + arch + '.hpkg';
+			recipe.revision + '-' +
+			(arch === false ? recipe.arch : arch) + '.hpkg';
 	}
-
-	var anyArchPackages = [];
-	// Technically this is a race condition, but the 'any' build will always complete
-	// before the other builds, so it should be OK.
 
 	/**
 	  * @private
@@ -88,17 +85,16 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	this._updatePackageRepo = function (arch, hrev, ports) {
 		var packages = [], fetchablePorts = 0, fetchedPorts = 0,
 			afterPackagesAreFetched, repoPath, afterPackagesAreSymlinked, afterPackageRepoExits;
-		if (arch != 'any') {
-			if (anyArchPackages.length == 0) {
-				global.ircNotify("ASSERT FAILED - anyArchPackages was empty?! arch " + arch);
-				log("ASSERT FAILED - anyArchPackages was empty?! arch " + arch);
-				return;
-			}
-			packages = packages.concat(anyArchPackages);
+		if (arch == 'any')
+			return;
+		var anyArchProcessedRecipes = thisThis._buildDependencyGraph('any', '', true);
+		for (var i in anyArchProcessedRecipes) {
+			if (anyArchProcessedRecipes[i].available)
+				ports.push(anyArchProcessedRecipes[i]);
 		}
 		for (var i in ports) {
 			fetchablePorts++;
-			glob('data/packages/' + hpkgName(ports[i], arch, true), function (err, files) {
+			glob('data/packages/' + hpkgName(ports[i], false, true), function (err, files) {
 				packages = packages.concat(files);
 				fetchedPorts++;
 				if (fetchedPorts == fetchablePorts)
@@ -106,13 +102,6 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			});
 		}
 		afterPackagesAreFetched = function () {
-			if (arch == 'any') {
-				// You can't have a repo with arch='any', so we store the list
-				// of "any" arch packages and return.
-				anyArchPackages = packages;
-				return;
-			}
-
 			if (!fs.existsSync('data/repository/' + arch)) {
 				fs.mkdirSync('data/repository/' + arch);
 				fs.mkdirSync('data/repository/' + arch + '/by_hrev');
@@ -186,7 +175,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	  * @memberof! RepositoryManager.prototype
 	  * @description Private handler for _dependencyGraphFor().
 	  */
-	this._buildDependencyGraph = function (arch, secondaryArch) {
+	this._buildDependencyGraph = function (arch, secondaryArch, justReturnProcessedRecipes) {
 		function versionGreaterThan (v1, v2) {
 			if (v1 === undefined && v2 !== undefined)
 				return true;
@@ -274,12 +263,16 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					revision: recipe.revision,
 					provides: provides,
 					requires: requires,
-					available: fs.existsSync('data/packages/' + hpkgName(recipe, arch))
+
+					available: fs.existsSync('data/packages/' + hpkgName(recipe, arch)),
+					arch: arch
 				};
 			}
 		}
 		processHighestVersions(highestVersionForArch, '');
 		processHighestVersions(highestVersionForSecondaryArch, '_' + secondaryArch);
+		if (justReturnProcessedRecipes)
+			return processedRecipes;
 
 		// Build dependency list
 		var graph = new DepGraph(), toDownload = [];
