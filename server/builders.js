@@ -214,18 +214,14 @@ function Builder(builderManager, name, data) {
 		case 'uname':
 			var uname = msg.output.trim().split(' ');
 			this.hrev = uname[3].substr(4);
-			this.data.architecture = uname[9];
 			break;
 		case 'archlist':
-			var archlist = msg.output.trim().replace(/\n/g, ' ');
-			if (archlist == 'x86_gcc2 x86')
-				this.data.flavor = 'gcc2hybrid';
-			else if (archlist == 'x86 x86_gcc2')
-				this.data.flavor = 'gcc4hybrid';
-			else if (archlist == this.data.architecture)
-				this.data.flavor = 'pure';
+			var archlist = msg.output.trim().replace(/\n/g, ' ').split(' ');
+			this.data.architecture = archlist[0];
+			if (archlist.length == 2)
+				this.data.flavor = 'hybrid';
 			else
-				this.data.flavor = 'unknown';
+				this.data.flavor = 'pure';
 			break;
 
 		case 'updateResult':
