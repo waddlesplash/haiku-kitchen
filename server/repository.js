@@ -90,7 +90,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		var anyArchProcessedRecipes = thisThis._buildDependencyGraph('any', '', true);
 		for (var i in anyArchProcessedRecipes) {
 			if (anyArchProcessedRecipes[i].available)
-				ports.push(anyArchProcessedRecipes[i]);
+				ports[anyArchProcessedRecipes[i].name] = anyArchProcessedRecipes[i];
 		}
 		for (var i in ports) {
 			fetchablePorts++;
