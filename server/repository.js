@@ -329,13 +329,18 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	  * @param {string} arch The primary architecture to build for.
 	  */
 	this._dependencyGraphFor = function (arch, secondaryArch) {
+		var ignoreError = false;
 		try {
 			var retval = this._buildDependencyGraph(arch, secondaryArch);
 			var itms = retval.graph.overallOrder(); // so we catch any possible exceptions
-			if (itms.length === 0)
+			if (itms.length === 0) {
+				ignoreError = true;
 				throw "no recipes not already built on current version";
+			}
 			return retval;
 		} catch (e) {
+			if (ignoreError)
+				return;
 			log('CATCH: _buildDependencyGraph failed (for arch %s):', arch);
 			log(e);
 			// Don't send the exception to IRC in case it contains sensitive information
