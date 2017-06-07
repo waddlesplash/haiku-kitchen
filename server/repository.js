@@ -18,9 +18,10 @@ var arches = [
 	['x86_64']
 ];
 var assumeSatisfied = [
-	// Assume these packages are already available in some form; they're
-	// included in the default install so that should be a safe assumption
+	// Assume these packages are already available in some form.
+	// The installation guide specifically notes to install them.
 	'gcc',
+	'zlib',
 	'binutils',
 	'libtool',
 	'gawk',
@@ -29,7 +30,11 @@ var assumeSatisfied = [
 	'flex',
 	'grep',
 	'sed',
-	'tar'
+	'tar',
+	'autoconf', 'automake',
+	'gettext',
+	'bash',
+	'file',
 ];
 var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding: 'UTF-8'});
 

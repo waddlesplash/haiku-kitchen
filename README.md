@@ -21,6 +21,12 @@ use the `builder:create` command. The script will return the contents of the
 `builder.conf` file that should be placed on the builder. Note that the file
 contains a key that **CANNOT BE RECOVERED** by any means; so don't lose it!
 
+The following packages must also be installed on the builder:
+```
+gcc zlib_devel binutils libtool gawk make bison flex grep sed tar autoconf automake gettext bash file
+```
+If the builder is a hybrid, all the hybrid versions of the above packages must also be installed.
+
 You will also have to add an `ip` entry to the `builder.conf` file manually
 with the IP address of the server.
 
@@ -33,9 +39,9 @@ deleting will still reference the builder by name.
 ### Running (development mode)
 Install the `npm` dependencies with `npm install`, and then run:
 ```
-DEBUG=* node index.js --port=8081
+DEBUG=*,-express*,-send node index.js --port=8081
 ```
-On Windows, use `set DEBUG=*` on a separate line instead.
+On Windows, use `set DEBUG=*,-express*,-send` on a separate line instead.
 
 ### Deployment
 Make sure to install the `npm` dependencies using `npm install --production`.
