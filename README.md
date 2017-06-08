@@ -13,8 +13,9 @@ openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -nodes \
 and place them in the `data` folder alongside `builders.json`.
 
 You will also need the `package_repo` command from Haiku. You can get that
-by using `jam -q \<host\>package_repo` (after a `./configure --host-only`,
-if you don't already have a build setup.)
+by using `jam -q \<build\>package_repo` (after a `./configure --host-only`,
+if you don't already have a build setup.) It will need the libraries
+`libroot_build.so`, `libbe_build.so`, and `libpackage_build.so` to run.
 
 ### Adding Builders
 The `kitchen.js` script is used to manage the server. To create a new builder,

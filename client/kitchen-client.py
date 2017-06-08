@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2015 Haiku, Inc. All rights reserved.
+# Copyright 2015-2017 Haiku, Inc. All rights reserved.
 # Distributed under the terms of the MIT License.
 #
 # Authors:
@@ -25,7 +25,7 @@ while True: # loop until we connect
 	try:
 		sock = socket.socket()
 		sock.setblocking(1)
-		sock.connect((conf['ip'], 42458))
+		sock.connect((conf['ip'], 5824))
 	except:
 		sock.close()
 		time.sleep(5)

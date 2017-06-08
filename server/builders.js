@@ -459,7 +459,7 @@ function Builder(builderManager, name, data) {
   *
   * There should only be one instance of BuilderManager running on one
   * machine at any given time, as it assumes complete control of the TCP
-  * port `42458`.
+  * port `5824`.
   */
 module.exports = function () {
 	var thisThis = this;
@@ -688,5 +688,5 @@ module.exports = function () {
 			builder._authenticated(sock);
 		});
 		sock.write('\n'); // indicates to the builder we're ready
-	}).listen(42458 /* HAIKU */);
+	}).listen(5824 /* KTCH */);
 };

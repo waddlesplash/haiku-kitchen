@@ -24,7 +24,7 @@ The server is written in object-oriented Node.js. The various components are spl
 
 When the application starts:
  1. It initializes the `PortsTree` object.(If there is no HaikuPorts tree cloned in `cache`, it clones one (synchronously), blocking server startup until it completes the clone and initial cache rebuild.)
- 2. It then creates the `BuilderManager` and `BuildsManager`, which creates the TLS server for builder connections (on port `42458`). After that, it creates the `RepositoryManager`, which creates a HTTP server to transfer packages onto the builders with (on port `4753`).
+ 2. It then creates the `BuilderManager` and `BuildsManager`, which creates the TLS server for builder connections (on port `5824`). After that, it creates the `RepositoryManager`, which creates a HTTP server to transfer packages onto the builders with (on port `4753`).
  3. After both of those start successfully, it then starts the HTTP webapp server (which is based on [`expressjs`](http://expressjs.com/)).
  4. It then returns into Node.js's event loop, which then dispatches events to the TLS server, HTTP server, or `PortsTree` update timer as they come in.
 
