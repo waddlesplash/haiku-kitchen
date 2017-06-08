@@ -8,7 +8,7 @@ The server needs a TLS keypair for communication with the clients. Generate one
 by using:
 ```bash
 openssl req -x509 -newkey rsa:4096 -sha512 -days 3650 -keyout server.key -nodes -out server.crt \
-  -subj "/C=XX/ST=YourState/L=YourLocation/O=YourName/CN=CommonName"
+  -subj "/C=XX/ST=YourState/L=YourLocation/O=YourName/CN=haiku_kitchen"
 ```
 and place them in the `data` folder alongside `builders.json`.
 
@@ -22,6 +22,8 @@ The `kitchen.js` script is used to manage the server. To create a new builder,
 use the `builder:create` command. The script will return the contents of the
 `builder.conf` file that should be placed on the builder. Note that the file
 contains a key that **CANNOT BE RECOVERED** by any means; so don't lose it!
+Additionally, the server's `server.crt` certificate must be placed on the builder
+alongside the `builder.conf`.
 
 The following packages must also be installed on the builder:
 ```
