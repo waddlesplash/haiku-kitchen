@@ -3,17 +3,18 @@ Haiku Kitchen
 This repository contains the server and client of Haiku's package recipe build
 system.
 
-Deployment / Installation / Usage
---------------------------------------
-
-### Testing
+### Basic setup
 The server needs a TLS keypair for communication with the clients. Generate one
-(self-signed) with:
+by using:
 ```bash
 openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -nodes \
   -subj "/C=YourCountry/ST=YourState/L=YourLocation/O=YourName/CN=CommonName"
 ```
-... and place them in the `data` folder alongside `builders.json`.
+and place them in the `data` folder alongside `builders.json`.
+
+You will also need the `package_repo` command from Haiku. You can get that
+by using `jam -q \<host\>package_repo` (after a `./configure --host-only`,
+if you don't already have a build setup.)
 
 ### Adding Builders
 The `kitchen.js` script is used to manage the server. To create a new builder,
