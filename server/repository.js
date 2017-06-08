@@ -420,8 +420,6 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			var recipes = graph.overallOrder();
 			for (var j in recipes) {
 				var command = 'haikuporter ' + recipes[j];
-				if (recipes[j].indexOf(arches[i][1]) != -1)
-					command += ' --no-source-packages';
 				build.steps.push({command: command});
 			}
 			build.steps.push({action: function (build, callback) {
