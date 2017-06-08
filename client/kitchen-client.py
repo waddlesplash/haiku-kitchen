@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 # Copyright 2015-2017 Haiku, Inc. All rights reserved.
 # Distributed under the terms of the MIT License.
@@ -12,10 +12,14 @@ confFilename = os.path.dirname(os.path.realpath(__file__)) + '/builder.conf'
 if (not os.path.isfile(confFilename)):
 	raise IOError("Configuration file '" + confFilename + "' does not exist!")
 
+crtFilename = os.path.dirname(os.path.realpath(__file__)) + '/server.crt'
+if (not os.path.isfile(crtFilename)):
+	raise IOError("Server certificate '" + crtFilename + "' does not exist!")
+
 with open (confFilename, 'r') as confFile:
 	try:
-		conf = json.loads(confFile.read().replace('\n', ''))
-	except ValueError:
+		conf = json.loads(confFile.read())
+	except:
 		print "Error: Your conf file is invalid JSON (filename: {0})".format(confFilename)
 		sys.exit(1)
 
@@ -41,6 +45,15 @@ sock = ssl.wrap_socket(sock, ssl_version = ssl.PROTOCOL_TLSv1,
 
 authMsg = {'what': 'auth', 'name': conf['name'], 'key': conf['key']}
 sock.recv(1) # wait until we recieve the first newline
+
+with open (crtFilename, 'r') as certFile:
+	if (sock.getpeercert(True) != base64.b64decode(certFile.read().replace('-----BEGIN CERTIFICATE-----', '')
+			.replace('-----END CERTIFICATE-----', ''))):
+		print "Error: Server sent a certificate that does not match server.crt"
+		print "Server's certificate:"
+		print b64.b64encode(sock.getpeercert(True))
+		sys.exit(2)
+
 sendJSON(authMsg)
 
 dataBuf = ''
