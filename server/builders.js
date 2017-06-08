@@ -341,8 +341,6 @@ function Builder(builderManager, name, data) {
 		this.status('busy');
 		if (this.status() != 'broken') {
 			// startup stuff
-			this._sendMessage({what: 'command', replyWith: 'ignore',
-				command: 'hey Tracker quit'});
 			this._fetchMetadata();
 		}
 
@@ -514,6 +512,7 @@ module.exports = function () {
 			} else {
 				log('git-pull on builder %s failed: %s', builderName, output.trim());
 				builder.status('broken');
+				return;
 			}
 			if (callback !== undefined)
 				callback();
@@ -591,7 +590,7 @@ module.exports = function () {
 			cmd = [
 				'TREE_PATH=\\"/boot/home/haikuports\\"',
 				'PACKAGER=\\"Haiku Kitchen \\<kitchen@server.fake\\>\\"'
-				];
+			];
 			if (builder.data.architecture == 'x86_gcc2')
 				cmd.push('SECONDARY_TARGET_ARCHITECTURES=\\"x86\\"');
 			else if (builder.data.architecture == 'x86')

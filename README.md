@@ -7,8 +7,8 @@ system.
 The server needs a TLS keypair for communication with the clients. Generate one
 by using:
 ```bash
-openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -nodes \
-  -subj "/C=YourCountry/ST=YourState/L=YourLocation/O=YourName/CN=CommonName"
+openssl req -x509 -newkey rsa:4096 -sha512 -days 3650 -keyout server.key -nodes -out server.crt \
+  -subj "/C=XX/ST=YourState/L=YourLocation/O=YourName/CN=CommonName"
 ```
 and place them in the `data` folder alongside `builders.json`.
 
@@ -25,7 +25,7 @@ contains a key that **CANNOT BE RECOVERED** by any means; so don't lose it!
 
 The following packages must also be installed on the builder:
 ```
-gcc zlib_devel binutils libtool gawk make bison flex grep sed tar autoconf automake gettext bash file
+gcc zlib_devel binutils libtool gawk make bison flex grep sed tar autoconf automake gettext bash file wget curl
 ```
 If the builder is a hybrid, all the hybrid versions of the above packages must also be installed.
 
