@@ -419,7 +419,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				'find ~/haikuports -type d -name "work-*" -exec rm -rf {} \\; || true'});
 			var recipes = graph.overallOrder();
 			for (var j in recipes) {
-				var command = 'haikuporter --no-dependencies ' + recipes[j];
+				var command = 'haikuporter ' + recipes[j];
 				if (recipes[j].indexOf(arches[i][1]) != -1)
 					command += ' --no-source-packages';
 				build.steps.push({command: command});
