@@ -31,6 +31,8 @@ module.exports = {
 		test.strictEqual(generic.revision, '1');
 		test.strictEqual(JSON.stringify(generic.architectures),
 			JSON.stringify(['x86', '?x86_64', '!x86_gcc2']));
+		test.strictEqual(JSON.stringify(generic.secondaryArchitectures),
+			JSON.stringify(['x86']));
 		test.done();
 	},
 	'qemacs-0.3.3': function (test) {

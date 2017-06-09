@@ -123,39 +123,4 @@ module.exports = function (filepath) {
 		newRequires.push(this.build_requires[i]);
 	}
 	this.build_requires = newRequires;
-
-	// Clean up architectures for the "gcc2" hacks. (FIXME: would be nice to fix this
-	// in HaikuPorter...)
-	var newArches = [];
-	function tryAddArch(arch) {
-		var plainArch = arch;
-		if (arch[0] == '?' || arch[0] == '!')
-			plainArch = arch.substring(1);
-		var plainLoc = newArches.indexOf(plainArch),
-			unkLoc = newArches.indexOf('?' + plainArch),
-			notLoc = newArches.indexOf('!' + plainArch);
-		if (notLoc == -1 && unkLoc == -1 && plainLoc == -1)
-			newArches.push(arch);
-		if (notLoc != -1)
-			return;
-
-		function replaceArch() {
-			if (notLoc != -1)
-				newArches[notLoc] = arch;
-			else if (plainLoc != -1)
-				newArches[plainLoc] = arch;
-			else if (unkLoc != -1)
-				newArches[unkLoc] = arch;
-		}
-		if (arch[0] == '!' && (plainLoc != -1 || unkLoc != -1))
-			replaceArch();
-		else if (arch[0] == '?' && (plainLoc != -1))
-			replaceArch();
-	}
-	for (var i in this.architectures) {
-		if (this.architectures[i] == '$ARCHITECTURES')
-			continue;
-		tryAddArch(this.architectures[i]);
-	}
-	this.architectures = newArches;
 };
