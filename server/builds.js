@@ -148,7 +148,7 @@ module.exports = function (builderManager) {
 			step.output = output.trim();
 			var res;
 			try {
-				res = build.handleResult(step, exitcode, output)
+				res = build.handleResult(step, exitcode, output);
 			} catch (e) {
 				log('handleResult() failed (build #%d):', build.id);
 				log(e);
