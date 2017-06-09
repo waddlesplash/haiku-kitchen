@@ -51,7 +51,7 @@ with open (crtFilename, 'r') as certFile:
 			.replace('-----END CERTIFICATE-----', ''))):
 		print "Error: Server sent a certificate that does not match server.crt"
 		print "Server's certificate:"
-		print b64.b64encode(sock.getpeercert(True))
+		print base64.b64encode(sock.getpeercert(True))
 		sys.exit(2)
 
 sendJSON(authMsg)
@@ -74,10 +74,10 @@ while True:
 		if (msg['what'] == 'command'):
 			reply['what'] = msg['replyWith']
 			reply['output'] = ''
-			print "Executing command '" + msg['command'] + "'."
 			command = msg['command']
 			command = command.replace('KITCHEN_SERVER_ADDRESS', conf['ip'])
-			if (not ('&&' in command or 'cd' in command or 'rm' in command)):
+			print "Executing command '" + command + "'."
+			if (not ('&&' in command or '|' in command or 'cd' in command or 'rm' in command)):
 				command = 'stdbuf -o L ' + command
 			proc = subprocess.Popen(command, shell = True,
 				stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
@@ -86,23 +86,6 @@ while True:
 				sys.stdout.write(":: " + line)
 				sys.stdout.flush()
 			reply['exitcode'] = proc.wait()
-		elif (msg['what'] == 'transferFile'):
-			print "Transferring file '" + msg['file'] + "'."
-			starting = {}
-			starting['what'] = 'transferStarting'
-			starting['id'] = msg['replyWith']
-			sendJSON(starting)
-
-			file = open(os.path.expanduser(msg['file']), 'rb')
-			while True:
-				piece = file.read(1024)
-				if not piece:
-					break
-				sendJSON({'data': base64.b64encode(piece)})
-			file.close()
-
-			print "File transfer complete."
-			reply['what'] = 'ignore'
 		elif (msg['what'] == 'getCores'):
 			reply['what'] = 'coreCount'
 			reply['count'] = multiprocessing.cpu_count()

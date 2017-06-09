@@ -25,52 +25,52 @@ if (!fs.existsSync('data/server.key')) {
   * The DataWriter class takes care of writing the transferred file data to disk,
   * and calling the callback once the transfer completes.
   *
-  * @param {string} transferName The name of the file transfer this DataWriter
-  *  is responsible for.
+  * @param {Builder} Builder The builder that the file is being transferred from.
+  * @param {integer} fileSize The size of the file that is being transferred.
   * @param {string} fileName The name of the local file to write to.
   * @param {function|undefined} callback The callback to call once the transfer completes.
   */
-function DataWriter(transferName, fileName, callback) {
-	this._writing = false;
+function DataWriter(builder, fileSize, fileName, callback) {
 	this._done = false;
+	this._accumulatedSize = 0;
 	this._failed = false;
 	this._queuedData = [];
+	var thisThis = this;
 
 	/**
 	  * @public
 	  * @memberof! DataWriter.prototype
-	  * @description Adds another chunk of (Base64-encoded) data to the write queue.
+	  * @description Sets the socket handled by this DataWriter.
 	  */
-	this.append = function (data) {
-		if (this._failed)
-			return;
-		this._queuedData.push(data);
-		this._writeQueuedData();
-	};
-	/**
-	  * @public
-	  * @memberof! DataWriter.prototype
-	  * @description Marks the transfer as "done"; that is, no more data will be
-	  *  added to the queue.
-	  */
-	this.done = function () {
-		if (this._failed)
-			return;
-		this._done = true;
-		this._writeQueuedData();
-	};
-	/**
-	  * @public
-	  * @memberof! DataWriter.prototype
-	  * @description Marks the transfer as "failed".
-	  */
-	this.failed = function () {
-		if (this._failed)
-			return;
-		this._failed = true;
-		this._writeQueuedData();
+	this.socket = function (sock) {
+		log("file transfer '%s' from %s started", fileName, builder.name);
+		sock.on('data', function (data) {
+			thisThis._queuedData.push(data);
+			thisThis._accumulatedSize += data.length;
+			thisThis._done = (thisThis._accumulatedSize == fileSize);
+			if (thisThis._done) {
+				sock.destroy();
+			}
+			thisThis._writeQueuedData();
+		});
+		sock.on('error', function (err) {
+			if (thisThis._done)
+				return;
+			log("file transfer '%s' socket errored: %s", fileName, err);
+			try { sock.destroy(); } catch (e) {}
+			thisThis._failed = true;
+			thisThis._writeQueuedData();
+		});
+		sock.on('close', function () {
+			if (thisThis._done)
+				return;
+			log("file transfer '%s' disconnected", fileName);
+			thisThis._failed = true;
+			thisThis._writeQueuedData();
+		});
 	};
 
+	this._writing = false;
 	/**
 	  * @private
 	  * @memberof! DataWriter.prototype
@@ -84,7 +84,7 @@ function DataWriter(transferName, fileName, callback) {
 			return;
 		if (this._failed) {
 			fs.unlink(fileName, function (err) {});
-			log("file transfer '%s' failed", transferName);
+			log("file transfer '%s' failed", fileName);
 			this._queuedData = [];
 			if (callback) {
 				callback(true);
@@ -94,7 +94,7 @@ function DataWriter(transferName, fileName, callback) {
 		}
 		if (this._queuedData.length === 0) {
 			if (this._done) {
-				log("file transfer '%s' complete", transferName);
+				log("file transfer '%s' complete", fileName);
 				if (callback) {
 					callback(false);
 					callback = undefined;
@@ -104,8 +104,7 @@ function DataWriter(transferName, fileName, callback) {
 		}
 
 		this._writing = true;
-		var thisThis = this;
-		fs.appendFile(fileName,	new Buffer(this._queuedData[0], 'base64'),
+		fs.appendFile(fileName,	this._queuedData[0],
 			function () {
 				thisThis._queuedData.splice(0, 1); // delete first item
 				thisThis._writing = false;
@@ -303,7 +302,7 @@ function Builder(builderManager, name, data) {
 	};
 
 	this._fileTransfer = false;
-	this._nextTransferId = 0;
+	this._fileTransfers = [];
 	/**
 	  * @public
 	  * @memberof! Builder.prototype
@@ -315,15 +314,34 @@ function Builder(builderManager, name, data) {
 	  *   which will either be undefined or an error.
 	  */
 	this.transferFile = function (filePath, callback) {
-		var ftId = 'ft' + this._nextTransferId;
-		this._nextTransferId++;
+		var thisThis = this;
 		var localFile = 'cache/filetransfer/' + path.basename(filePath);
-		this._runningCommands[ftId] = {
-			file: filePath,
-			dataWriter: new DataWriter(filePath, localFile, callback)
-		};
 		fs.unlink(localFile, function (err) { /* probably ENOENT */ });
-		this._sendMessage({what: 'transferFile', replyWith: ftId, file: filePath});
+		this.runCommand('stat -c %s ' + filePath, function (exitcode, output) {
+			if (exitcode !== 0) {
+				log('attempt to stat file for transfer on %s failed: %s',
+					builderName, output.trim());
+				return;
+			}
+			thisThis._fileTransfer = true; // as next command will actually start it
+
+			var filesize = parseInt(output.trim());
+			var transfer = {
+				file: filePath,
+				dataWriter: new DataWriter(thisThis, filesize, localFile, function (err) {
+					if (callback)
+						callback(err);
+					thisThis._fileTransfers = thisThis._fileTransfers.slice(1);
+					thisThis._fileTransfer = false;
+					thisThis._sendPendingMessages();
+				})
+			};
+			thisThis._fileTransfers.push(transfer);
+
+			global.builderManager.awaitingFiletransfer[thisThis._socket.remoteAddress] = transfer.dataWriter;
+		});
+		this.runCommand('cat ' + filePath +
+			' | openssl s_client -connect KITCHEN_SERVER_ADDRESS:5824 -quiet');
 	};
 
 	/**
@@ -344,7 +362,7 @@ function Builder(builderManager, name, data) {
 			this._fetchMetadata();
 		}
 
-		var messageHandler, fileTransferHandler, fileTransferId, dataBuf = '', msgs;
+		var messageHandler, dataBuf = '', msgs;
 		function dataHandler(newData) {
 			if (newData === undefined)
 				return;
@@ -371,52 +389,7 @@ function Builder(builderManager, name, data) {
 			dataHandler(dat);
 			for (var i in msgs) {
 				var msg = msgs[i];
-				if (msg.what == 'transferStarting') {
-					sock.removeAllListeners('data');
-					sock.on('data', fileTransferHandler);
-					this._fileTransfer = true;
-					fileTransferId = msg.id;
-					log("transferring file '%s' from builder '%s'...",
-						thisThis._runningCommands[fileTransferId].file,
-						thisThis.name);
-
-					var newMsgs = [];
-					for (var j = i + 1; j < msgs.length; j++)
-						newMsgs.push(msgs[i]);
-					msgs = newMsgs;
-					fileTransferHandler();
-					break;
-				}
 				thisThis._handleMessage(msg);
-			}
-		};
-
-		fileTransferHandler = function (data) {
-			var transferObj = thisThis._runningCommands[fileTransferId];
-			dataHandler(data);
-
-			var failed = false;
-			function sockClosed() {
-				if (failed)
-					return; // we shouldn't get here...
-				failed = true;
-				transferObj.dataWriter.failed();
-			}
-			if (data === undefined)
-				sock.on('close', sockClosed);
-			for (var i in msgs) {
-				if ('what' in msgs[i] || failed) {
-					sock.removeListener('close', sockClosed);
-					sock.removeAllListeners('data');
-					sock.on('data', messageHandler);
-					this._fileTransfer = false;
-					transferObj.dataWriter.done();
-
-					messageHandler(undefined);
-					thisThis._sendPendingMessages();
-					return;
-				}
-				transferObj.dataWriter.append(msgs[i].data);
 			}
 		};
 		sock.on('data', messageHandler);
@@ -637,19 +610,32 @@ module.exports = function () {
 		this._builderBrokenCallbacks.push(callback);
 	};
 
+	this.awaitingFiletransfer = {};
+
 	var options = {
 		key: fs.readFileSync('data/server.key'),
 		cert: fs.readFileSync('data/server.crt')
 	};
 	require('tls').createServer(options, function (sock) {
 		log('socket opened from %s', sock.remoteAddress);
+		if (thisThis.awaitingFiletransfer[sock.remoteAddress]) {
+			log('wiring socket from %s to file transfer handler', sock.remoteAddress);
+			thisThis.awaitingFiletransfer[sock.remoteAddress].socket(sock);
+			delete thisThis.awaitingFiletransfer[sock.remoteAddress];
+			return;
+		}
+
 		var msg = '';
 		sock.on('data', function (data) {
 			msg += data.toString();
 			if (msg.indexOf('\n') < 0)
 				return;
 
-			msg = JSON.parse(msg);
+			try {
+				msg = JSON.parse(msg);
+			} catch (e) {
+				msg = {};
+			}
 			if (msg.what != 'auth') {
 				log("AUTHFAIL: %s's first message is not 'auth'!",
 					sock.remoteAddress);
