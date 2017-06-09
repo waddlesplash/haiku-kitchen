@@ -320,7 +320,9 @@ function Builder(builderManager, name, data) {
 		this.runCommand('stat -c %s ' + filePath, function (exitcode, output) {
 			if (exitcode !== 0) {
 				log('attempt to stat file for transfer on %s failed: %s',
-					builderName, output.trim());
+					thisThis.name, output.trim());
+				if (callback)
+					callback(true);
 				return;
 			}
 			thisThis._fileTransfer = true; // as next command will actually start it
@@ -340,7 +342,7 @@ function Builder(builderManager, name, data) {
 
 			global.builderManager.awaitingFiletransfer[thisThis._socket.remoteAddress] = transfer.dataWriter;
 		});
-		this.runCommand('cat ' + filePath +
+		this.runCommand('test -f ' + filePath + ' && cat ' + filePath +
 			' | openssl s_client -connect KITCHEN_SERVER_ADDRESS:5824 -quiet');
 	};
 
