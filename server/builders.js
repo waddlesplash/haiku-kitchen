@@ -602,7 +602,6 @@ module.exports = function () {
 					builder.status('broken');
 					return;
 				}
-				builder.status('online');
 			});
 		});
 		builder.runCommand('ln -s ~/haikuporter/haikuporter /system/non-packaged/bin/haikuporter');
