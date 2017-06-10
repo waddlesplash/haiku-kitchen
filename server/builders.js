@@ -7,7 +7,12 @@
  */
 
 var log = require('debug')('kitchen:builders'), fs = require('fs'),
-	path = require('path'), crypto = require('crypto');
+	path = require('path'), crypto = require('crypto'), shell = require('shelljs');
+
+if (!shell.which('sha256sum')) {
+	console.error('FATAL: sha256sum (from coreutils) must be installed.');
+	process.exit(1);
+}
 
 if (!fs.existsSync('data/builders.json')) {
 	console.error('FATAL: no builders configuration file! set one up using kitchen.js.');
@@ -30,7 +35,7 @@ if (!fs.existsSync('data/server.key')) {
   * @param {string} fileName The name of the local file to write to.
   * @param {function|undefined} callback The callback to call once the transfer completes.
   */
-function DataWriter(builder, fileSize, fileName, callback) {
+function DataWriter(builder, fileSize, fileName, hash, callback) {
 	this._done = false;
 	this._accumulatedSize = 0;
 	this._failed = false;
@@ -94,11 +99,30 @@ function DataWriter(builder, fileSize, fileName, callback) {
 		}
 		if (this._queuedData.length === 0) {
 			if (this._done) {
-				log("file transfer '%s' complete", fileName);
-				if (callback) {
-					callback(false);
-					callback = undefined;
-				}
+				shell.exec('sha256sum ' + fileName, {silent: true}, function (code, output) {
+					if (code !== 0) {
+						log("failed to hash file '%s' on server", fileName);
+						if (callback) {
+							callback(true);
+							callback = undefined;
+						}
+						return;
+					}
+					var serverHash = output.trim().substr(0, 64);
+					if (serverHash != hash) {
+						log("transfer '%s' hashes don't match! client: %s server: %s", fileName, hash, serverHash);
+						if (callback) {
+							callback(true);
+							callback = undefined;
+						}
+						return;
+					}
+					log("file transfer '%s' complete", fileName);
+					if (callback) {
+						callback(false);
+						callback = undefined;
+					}
+				});
 			}
 			return;
 		}
@@ -317,20 +341,21 @@ function Builder(builderManager, name, data) {
 		var thisThis = this;
 		var localFile = 'cache/filetransfer/' + path.basename(filePath);
 		fs.unlink(localFile, function (err) { /* probably ENOENT */ });
-		this.runCommand('stat -c %s ' + filePath, function (exitcode, output) {
+		this.runCommand('stat -c %s ' + filePath + ' && sha256sum ' + filePath, function (exitcode, output) {
 			if (exitcode !== 0) {
-				log('attempt to stat file for transfer on %s failed: %s',
+				log('attempt to stat & checksum file for transfer on %s failed: %s',
 					thisThis.name, output.trim());
 				if (callback)
 					callback(true);
 				return;
 			}
 			thisThis._fileTransfer = true; // as next command will actually start it
+			var output = output.split("\n");
 
-			var filesize = parseInt(output.trim());
+			var filesize = parseInt(output[0].trim()), hash = output[1].substr(0, 64);
 			var transfer = {
 				file: filePath,
-				dataWriter: new DataWriter(thisThis, filesize, localFile, function (err) {
+				dataWriter: new DataWriter(thisThis, filesize, localFile, hash, function (err) {
 					if (callback)
 						callback(err);
 					thisThis._fileTransfers = thisThis._fileTransfers.slice(1);
