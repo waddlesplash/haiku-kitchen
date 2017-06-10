@@ -27,9 +27,10 @@ alongside the `builder.conf`.
 
 The following packages must also be installed on the builder:
 ```
-gcc zlib_devel binutils libtool gawk make bison flex grep sed tar autoconf automake gettext bash file wget curl
+gcc zlib_devel binutils libtool gawk make bison flex grep sed tar autoconf automake gettext bash file wget openssl coreutils
 ```
-If the builder is a hybrid, all the hybrid versions of the above packages must also be installed.
+(Most of these are usually installed by default.) If the builder is a hybrid,
+all the hybrid versions of the above packages must also be installed.
 
 You will also have to add an `ip` entry to the `builder.conf` file manually
 with the IP address of the server.

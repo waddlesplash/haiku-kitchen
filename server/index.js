@@ -15,7 +15,8 @@ process.on('uncaughtException', function (err) {
 var log = require('debug')('kitchen:index'), fs = require('fs'),
 	PortsTree = require('./portstree.js'), BuildsManager = require('./builds.js'),
 	BuilderManager = require('./builders.js'), RepositoryManager = require('./repository.js'),
-	timers = require('timers'), zlib = require('zlib'), IRC = require('internet-relay-chat');
+	timers = require('timers'), zlib = require('zlib'), IRC = require('internet-relay-chat'),
+	https = require('https');
 
 var argv = require('minimist')(process.argv.slice(2));
 if (argv.help) {
@@ -37,6 +38,10 @@ log("starting up");
 var portsTree = global.portsTree = new PortsTree();
 portsTree.update();
 timers.setInterval(portsTree.update, 10 * 60 * 1000);
+
+/*! ------------------------ webserver ------------------------ */
+var express = require('express'), app = global.app = express(),
+	transfer_app = global.transfer_app = express();
 
 /*! --------------------- builds/builders --------------------- */
 var builderManager = global.builderManager = new BuilderManager(),
@@ -85,7 +90,7 @@ function createJobToLintRecipes(recipes, desc) {
 portsTree.onPullFinished(function () {
 	var builds = buildsManager.builds();
 	for (var i in builds) {
-		if (builds[i].status == 'pending')
+		if (builds[i].status == 'pending' || builds[i].status == 'running')
 			return; // don't start any new builds right now
 	}
 
@@ -105,8 +110,12 @@ portsTree.onPullFinished(function () {
 var repositoryManager = global.repositoryManager =
 	new RepositoryManager(builderManager, buildsManager, portsTree);
 
-/*! ------------------------ webserver ------------------------ */
-var express = require('express'), app = global.app = express();
+transfer_app.https_server = https.createServer({
+	key: fs.readFileSync('data/server.key', 'utf8'),
+	cert: fs.readFileSync('data/server.crt', 'utf8')},
+transfer_app);
+transfer_app.https_server.listen(5825);
+
 app.get('/api/recipes', function (request, response) {
 	response.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
 	response.end(portsTree.clientRecipes);
@@ -214,8 +223,8 @@ if (fs.existsSync('data/irc.json')) {
 			reply("Update started.");
 			break;
 		case 'help':
-			reply("Available commands: 'help' (displays this), "
-				+ "'update-all-builders' (initates a pkgman full-sync on all idle builders)");
+			reply("Available commands: 'help' (displays this), " +
+				"'update-all-builders' (initates a pkgman full-sync on all idle builders)");
 			break;
 		default:
 			reply("I ain't got a clue what you're talkin' 'bout!");

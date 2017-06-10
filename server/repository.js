@@ -69,9 +69,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	if (!fs.existsSync('data/repository')) {
 		fs.mkdirSync('data/repository');
 	}
-	var app = express();
-	app.listen(4753);
-	app.use(express.static('data/packages/'));
+	global.transfer_app.use(express.static('data/packages/'));
 	var thisThis = this;
 
 	/* Returns the HPKG name, optionally in glob syntax */
@@ -109,47 +107,46 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		afterPackagesAreFetched = function () {
 			if (!fs.existsSync('data/repository/' + arch)) {
 				fs.mkdirSync('data/repository/' + arch);
-				fs.mkdirSync('data/repository/' + arch + '/by_hrev');
 			}
-			repoPath = process.cwd() + '/data/repository/' + arch + '/by_hrev/hrev' + hrev + '/';
+			repoPath = process.cwd() + '/data/repository/' + arch + '/for_hrev' + hrev + '/';
 			if (fs.existsSync(repoPath)) {
 				shell.rm('-rf', repoPath);
 			}
 			fs.mkdirSync(repoPath);
-			fs.mkdirSync(repoPath + 'packages');
-
-			var symlinkedPackages = 0;
-			for (var i in packages) {
-				fs.symlink(process.cwd() + '/' + packages[i],
-					repoPath + 'packages/' + path.basename(packages[i]),
-					function (err) {
-						if (err && err.code != 'EEXIST') {
-							log('FAILED symlink:');
-							log(err);
-							return;
-						}
-						symlinkedPackages++;
-						if (symlinkedPackages == packages.length)
-							afterPackagesAreSymlinked();
-					});
-			}
+			fs.symlink(process.cwd() + '/data/packages/', repoPath + 'packages', function (err) {
+				if (err && err.code != 'EEXIST') {
+					log('FAILED symlink:');
+					log(err);
+					return;
+				}
+				afterPackagesAreSymlinked();
+			});
 		};
 		afterPackagesAreSymlinked = function () {
 			var repoInfo = fs.readFileSync('data/repo.info.template', {encoding: 'UTF-8'});
 			repoInfo = repoInfo
 				.replace(/\$HREV\$/g, hrev)
 				.replace(/\$ARCH\$/g, arch)
-				.replace(/\$URL\$/g, ''); // TODO: is this even necessary?
-			fs.writeFile(repoPath + 'repo.info', repoInfo, function (err) {
+				.replace(/\$URL\$/g, arch + '/for_hrev' + hrev + '/');
+			fs.writeFileSync(repoPath + 'repo.info', repoInfo);
+			var packageslst = packages.join("\n").replace(/data\//g, '');
+			fs.writeFile(repoPath + 'packages.lst', packageslst, function (err) {
 				if (err) {
 					log('FAILED to write repo.info:');
 					log(err);
 					return;
 				}
-				var cmd = 'package_repo create "' + repoPath + 'repo.info" "' + repoPath + 'packages"/*.hpkg';
-				shell.exec(cmd, {silent: true}, function (code, output) {
+				// TODO: Patch package_repo so 'create' doesn't require at least one package
+				var cmd = 'package_repo create repo.info ' + packages[0].replace('data/', '');
+				var result = shell.exec('cd ' + repoPath + ' && ' + cmd, {silent: true});
+				if (result.code !== 0) {
+					log("FAILED to run 'package_repo create': (exited with: %d): %s", result.code, result.output);
+					return;
+				}
+				cmd = 'package_repo update repo repo packages.lst';
+				shell.exec('cd ' + repoPath + ' && ' + cmd, {silent: true}, function (code, output) {
 					if (code !== 0) {
-						log("FAILED to run 'package_repo': (exited with: %d): %s", code, output);
+						log("FAILED to run 'package_repo update': (exited with: %d): %s", code, output);
 						return;
 					}
 					afterPackageRepoExits();
@@ -169,7 +166,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 						return;
 					}
 					shell.rm('-rf', 'data/repository/' + arch + '/current/');
-					fs.symlink(repoPath, 'data/repository/' + arch + '/current');
+					fs.symlink(repoPath, 'data/repository/' + arch + '/current', function (err) {});
+					log('repository update for arch %s complete', arch);
 				});
 			});
 		};
@@ -377,7 +375,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					if (exitcode !== 0) {
 						step.status = 'failed';
 						var splitd = step.command.split(' '),
-							recipeName = splitd[2];
+							recipeName = splitd[1];
 						if (splitd[0] != 'haikuporter')
 							return false;
 						var deps = this.extradata_graph.dependantsOf(recipeName);
@@ -386,7 +384,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 								var stepAt = this.steps[j], splitStepAt = stepAt.command.split(' ');
 								if (splitStepAt[0] != 'haikuporter')
 									continue;
-								if (splitStepAt[2] == deps[i])
+								if (splitStepAt[1] == deps[i])
 									stepAt.status = 'failed';
 							}
 						}
@@ -408,7 +406,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					for (var i in globd) {
 						if (globd[i].indexOf("source.hpkg") != -1)
 							continue;
-						var command = 'cd ~/haikuports/packages; wget KITCHEN_SERVER_ADDRESS:4753/' +
+						var command = 'cd ~/haikuports/packages && ' +
+							'wget --no-check-certificate https://KITCHEN_SERVER_ADDRESS:5825/' +
 							path.basename(globd[i]) + '; cd ~';
 						build.steps.push({command: command});
 					}
