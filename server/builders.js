@@ -557,11 +557,9 @@ module.exports = function () {
 			builder.runCommand('haikuporter', function (exitcode, output) {
 				// Now that we've ensured there's an up-to-date HaikuPorts tree,
 				// we can fire the 'builder connected' signal.
-				if (builder.status('busy')) {
-					builder.status('online');
-					for (var i in thisThis._builderConnectedCallbacks)
-						thisThis._builderConnectedCallbacks[i](builderName);
-				}
+				builder.status('online');
+				for (var i in thisThis._builderConnectedCallbacks)
+					thisThis._builderConnectedCallbacks[i](builderName);
 			});
 		}
 
