@@ -369,7 +369,6 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				description: 'build new/updated recipes for ' + arches[i][0],
 				architecture: arches[i][0],
 				steps: [],
-				appendJobsFlag: true,
 				handleResult: function (step, exitcode, output) {
 					// Always called as "build.handleResult", so 'this' will be 'build'
 					if (exitcode !== 0) {
@@ -419,7 +418,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			var recipes = graph.overallOrder();
 			for (var j in recipes) {
 				var command = 'haikuporter ' + recipes[j];
-				build.steps.push({command: command});
+				build.steps.push({command: command, appendJobsFlag: true});
 			}
 			build.steps.push({action: function (build, callback) {
 				// transfer files

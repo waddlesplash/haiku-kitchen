@@ -193,7 +193,7 @@ module.exports = function (builderManager) {
 				step.action(build, commandFinished);
 			} else {
 				var command = step.command;
-				if (build.appendJobsFlag && builder.cores > 1)
+				if (step.appendJobsFlag && builder.cores > 1)
 					command += ' -j' + builder.cores;
 				builder.runCommand(command, commandFinished);
 			}
