@@ -54,12 +54,12 @@ builderManager.onBuilderBroken(function (name) {
 		'" so they can fix it!');
 });
 buildsManager.onBuildFinished(function (build) {
-	if (build.status != 'succeeded') {
-		ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "') " +
-			IRC.colors.darkRed + IRC.colors.bold + 'FAILED' + IRC.colors.reset +
-			' on step ' + (build.nextStep + 1) + ' out of ' + build.steps.length +
-			'. Someone please investigate!');
-	}
+	if (build.status == 'succeeded')
+		return;
+	ircNotify('Heads up! Build #' + build.id + " ('" + build.description + "') " +
+		IRC.colors.darkRed + IRC.colors.bold + build.status.toUpperCase() + IRC.colors.reset +
+		' (completed steps ' + build.stepsSucceeded + ' out of ' + build.steps.length +
+		'. Someone please investigate!');
 });
 
 /**
