@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Haiku, Inc. All rights reserved.
+ * Copyright 2015-2017 Haiku, Inc. All rights reserved.
  * Distributed under the terms of the MIT License.
  *
  * Authors:
@@ -160,7 +160,7 @@ function showBuildersPage() {
 					html += '<i class="fa fa-ban" style="color:red"></i>';
 				else
 					html += '<i class="fa fa-plug" style="color:lightgray"></i>';
-				html += '</span>&nbsp;&nbsp;<span><b>owner:</b> ' +
+				html += '</span>&nbsp;&nbsp;<span><br><b>owner:</b> ' +
 						data[i].owner.replace(/<[^>]*>/g, '') + '<br>';
 				if ('hrev' in data[i]) {
 					html += '<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' +
