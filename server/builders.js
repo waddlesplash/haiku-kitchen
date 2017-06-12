@@ -190,7 +190,7 @@ function Builder(builderManager, name, data) {
 		}
 		return this._status;
 	};
-	this.status('offline');
+	this._status = 'offline';
 
 	/**
 	  * @private
@@ -198,7 +198,7 @@ function Builder(builderManager, name, data) {
 	  * @description Sends messages to collect information about the builder.
 	  */
 	this._fetchMetadata = function () {
-		this._sendMessage({what: 'getCores'});
+		this._sendMessage({what: 'getCores'}, true);
 		this._sendMessage({what: 'command', replyWith: 'uname',
 			command: 'uname -a'});
 		this._sendMessage({what: 'command', replyWith: 'archlist',
@@ -295,37 +295,42 @@ function Builder(builderManager, name, data) {
 	};
 
 	this._pendingMessages = [];
+	this._okToSendNext = false;
 	/**
 	  * @private
 	  * @memberof! Builder.prototype
 	  * @description Sends the specified JSON message to the builder.
 	  * @param {Object} object The object to stringify and send.
 	  */
-	this._sendMessage = function (object) {
+	this._sendMessage = function (object, force) {
 		if (this._socket === null) {
-			log('WARN: attempt to write to null socket (builder %s).', this.name);
+			log('WARN: socket for builder %s is null, discarding message', this.name);
 			return;
 		}
-		if (this._fileTransfer) {
-			// Queue the message, we're running a file transfer ATM
-			this._pendingMessages.push(object);
+		if (force) {
+			// Send the message immediately, bypassing the queue
+			this._socket.write(JSON.stringify(object) + '\n');
 			return;
 		}
-		this._socket.write(JSON.stringify(object) + '\n');
+		this._pendingMessages.push(object);
+		if (this._okToSendNext)
+			this._sendNextMessage();
 	};
 	/**
 	  * @private
 	  * @memberof! Builder.prototype
 	  * @description Sends all pending messages to the builder.
 	  */
-	this._sendPendingMessages = function () {
-		for (var i in this._pendingMessages) {
-			this._sendMessage(this._pendingMessages[i]);
-			delete this._pendingMessages[i];
+	this._sendNextMessage = function () {
+		if (!this._pendingMessages.length) {
+			this._okToSendNext = true;
+			return;
 		}
+		this._socket.write(JSON.stringify(this._pendingMessages[0]) + '\n');
+		this._pendingMessages.splice(0, 1);
+		this._okToSendNext = false;
 	};
 
-	this._fileTransfer = false;
 	this._fileTransfers = [];
 	/**
 	  * @public
@@ -349,7 +354,6 @@ function Builder(builderManager, name, data) {
 					callback(true);
 				return;
 			}
-			thisThis._fileTransfer = true; // as next command will actually start it
 			var output = output.split("\n");
 
 			var filesize = parseInt(output[0].trim()), hash = output[1].substr(0, 64);
@@ -359,8 +363,6 @@ function Builder(builderManager, name, data) {
 					if (callback)
 						callback(err);
 					thisThis._fileTransfers = thisThis._fileTransfers.slice(1);
-					thisThis._fileTransfer = false;
-					thisThis._sendPendingMessages();
 				})
 			};
 			thisThis._fileTransfers.push(transfer);
@@ -383,6 +385,7 @@ function Builder(builderManager, name, data) {
 	  */
 	this._authenticated = function (sock) {
 		this._socket = sock;
+		this.remoteAddress = sock.remoteAddress;
 		var thisThis = this;
 
 		this.status('busy');
@@ -391,7 +394,7 @@ function Builder(builderManager, name, data) {
 			this._fetchMetadata();
 		}
 
-		var messageHandler, dataBuf = '', msgs;
+		var dataBuf = '', msgs;
 		function dataHandler(newData) {
 			if (newData === undefined)
 				return;
@@ -399,7 +402,7 @@ function Builder(builderManager, name, data) {
 			dataBuf += newData.toString();
 			var lines = dataBuf.split('\n');
 			dataBuf = lines[lines.length - 1];
-			delete lines[lines.length - 1];
+			lines.splice(lines.length - 1, 1);
 
 			msgs = [];
 			for (var i in lines) {
@@ -413,33 +416,40 @@ function Builder(builderManager, name, data) {
 				msgs.push(json);
 			}
 		}
-
-		messageHandler = function (dat) {
+		sock.on('data', function (dat) {
 			dataHandler(dat);
 			for (var i in msgs) {
 				var msg = msgs[i];
 				thisThis._handleMessage(msg);
 			}
-		};
-		sock.on('data', messageHandler);
+			thisThis._sendNextMessage();
+		});
 
 		var pinger = function () {
 			// Just send something to make sure the socket is alive
-			thisThis._sendMessage({what: 'getCores'});
+			thisThis._sendMessage({what: 'getCores'}, true);
 		};
 		var intervalObject = setInterval(pinger, 10 * 60 * 1000);
 		var closeHandler = function () {
 			thisThis._socket = null;
-			thisThis._status = 'offline';
 			clearInterval(intervalObject);
 			delete thisThis.hrev;
 			delete thisThis.cores;
+			thisThis._pendingMessages = [];
+			thisThis._fileTransfers = [];
 			for (var i in thisThis._runningCommands) {
 				var callback = thisThis._runningCommands[i].callback;
 				if (callback !== undefined)
 					callback(999999999, 'Builder disconnected');
 				delete thisThis._runningCommands[i];
 			}
+			thisThis._nextCommandId = 0;
+			for (var i in global.builderManager.filetransfers) {
+				if (global.builderManager.filetransfers[i].addr == thisThis.remoteAddress)
+					global.builderManager.filetransfers.splice(i, 1);
+			}
+			delete thisThis.remoteAddress;
+			thisThis._status = 'offline';
 		};
 		sock.on('error', function (err) {
 			log("builder '%s' socket errored: %s", thisThis.name, err);
