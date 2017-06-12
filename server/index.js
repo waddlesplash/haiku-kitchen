@@ -126,6 +126,7 @@ app.get('/api/builders', function (request, response) {
 		var builder = builderManager.builders[i];
 		respJson[i] = {
 			owner: builder.data.owner,
+			memsize: builder.memsize,
 			hrev: builder.hrev,
 			cores: builder.cores,
 			architecture: builder.data.architecture,

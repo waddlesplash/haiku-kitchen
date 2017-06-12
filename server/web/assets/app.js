@@ -165,6 +165,7 @@ function showBuildersPage() {
 				if ('hrev' in data[i]) {
 					html += '<a href="https://cgit.haiku-os.org/haiku/commit/?id=hrev' +
 							data[i].hrev + '">hrev' + data[i].hrev + '</a>, ' +
+						(data[i].memsize / (1024*1024*1024)).toFixed(1) + 'GB RAM, ' +
 						data[i].cores + (data[i].cores > 1 ? ' cores' : ' core') + ', ' +
 						data[i].flavor + ' ' + data[i].architecture + '</div>';
 				}

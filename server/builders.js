@@ -201,6 +201,8 @@ function Builder(builderManager, name, data) {
 		this._sendMessage({what: 'getCores'}, true);
 		this._sendMessage({what: 'command', replyWith: 'uname',
 			command: 'uname -a'});
+		this._sendMessage({what: 'command', replyWith: 'memsize',
+			command: "vmstat | awk '{print $3}' | head -1"});
 		this._sendMessage({what: 'command', replyWith: 'archlist',
 			command: 'setarch -l'});
 		builderManager._ensureHaikuportsTreeOn(this.name);
@@ -237,6 +239,9 @@ function Builder(builderManager, name, data) {
 		case 'uname':
 			var uname = msg.output.trim().split(' ');
 			this.hrev = uname[3].substr(4);
+			break;
+		case 'memsize':
+			this.memsize = parseInt(msg.output.trim());
 			break;
 		case 'archlist':
 			var archlist = msg.output.trim().replace(/\n/g, ' ').split(' ');
