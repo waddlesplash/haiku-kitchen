@@ -38,7 +38,7 @@ while True: # loop until we connect
 
 def sendJSON(obj):
 	"Writes the dictionary object passed to the socket as JSON."
-	sock.send(json.dumps(obj, separators = (',',':')) + '\n')
+	sock.sendall(json.dumps(obj, separators = (',',':')) + '\n')
 
 sock = ssl.wrap_socket(sock, ssl_version = ssl.PROTOCOL_TLSv1,
 					   cert_reqs = ssl.CERT_NONE)
