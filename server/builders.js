@@ -364,8 +364,10 @@ function Builder(builderManager, name, data) {
 				})
 			};
 			thisThis._fileTransfers.push(transfer);
-
-			global.builderManager.awaitingFiletransfer[thisThis._socket.remoteAddress] = transfer.dataWriter;
+			global.builderManager.filetransfers.push({
+				addr: thisThis._socket.remoteAddress,
+				dataWriter: transfer.dataWriter
+			});
 		});
 		this.runCommand('test -f ' + filePath + ' && cat ' + filePath +
 			' | openssl s_client -connect KITCHEN_SERVER_ADDRESS:5824 -quiet');
@@ -634,7 +636,7 @@ module.exports = function () {
 		this._builderBrokenCallbacks.push(callback);
 	};
 
-	this.awaitingFiletransfer = {};
+	this.filetransfers = [];
 
 	var options = {
 		key: fs.readFileSync('data/server.key'),
@@ -642,11 +644,13 @@ module.exports = function () {
 	};
 	require('tls').createServer(options, function (sock) {
 		log('socket opened from %s', sock.remoteAddress);
-		if (thisThis.awaitingFiletransfer[sock.remoteAddress]) {
-			log('wiring socket from %s to file transfer handler', sock.remoteAddress);
-			thisThis.awaitingFiletransfer[sock.remoteAddress].socket(sock);
-			delete thisThis.awaitingFiletransfer[sock.remoteAddress];
-			return;
+		for (var i in thisThis.filetransfers) {
+			var transfer = thisThis.filetransfers[i];
+			if (transfer.addr == sock.remoteAddress) {
+				transfer.dataWriter.socket(sock);
+				thisThis.filetransfers.splice(i, 1);
+				return;
+			}
 		}
 
 		var msg = '';
