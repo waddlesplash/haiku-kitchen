@@ -396,18 +396,16 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				}
 			};
 
-			if (retval.toDownload.length > 0) {
-				for (var j in retval.toDownload) {
-					var globd = glob.sync('data/packages/' + hpkgName(retval.toDownload[j],
-						arches[i][0], true));
-					for (var i in globd) {
-						if (globd[i].indexOf("source.hpkg") != -1)
-							continue;
-						var command = 'cd ~/haikuports/packages && ' +
-							'wget --no-check-certificate https://KITCHEN_SERVER_ADDRESS:5825/' +
-							path.basename(globd[i]) + '; cd ~';
-						build.steps.push({command: command});
-					}
+			for (var j in retval.toDownload) {
+				var globd = glob.sync('data/packages/' + hpkgName(retval.toDownload[j],
+					arches[i][0], true));
+				for (var k in globd) {
+					if (globd[k].indexOf("source.hpkg") != -1)
+						continue;
+					var command = 'cd ~/haikuports/packages && ' +
+						'wget --no-check-certificate https://KITCHEN_SERVER_ADDRESS:5825/' +
+						path.basename(globd[k]) + '; cd ~';
+					build.steps.push({command: command});
 				}
 			}
 
