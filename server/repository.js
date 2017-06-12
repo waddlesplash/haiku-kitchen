@@ -14,8 +14,8 @@ var log = require('debug')('kitchen:repository'), fs = require('fs'),
 var arches = [
 	['any'],
 	['x86_gcc2', 'x86'],
-	['x86', 'x86_gcc2'],
-	['x86_64']
+//	['x86', 'x86_gcc2'],
+//	['x86_64']
 ];
 var assumeSatisfied = [
 	// Assume these packages are already available in some form.
@@ -298,19 +298,17 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				for (var k in processedRecipes) {
 					var curProcdRecipe = processedRecipes[k];
 					if (curProcdRecipe.provides.indexOf(recipe.requires[j]) != -1) {
-						if (curProcdRecipe.available) {
+						if (assumeSatisfied.indexOf(curProcdRecipe.name) != -1 ||
+								assumeSatisfied.indexOf(curProcdRecipe.name.replace(
+									'_' + secondaryArch, '')) != -1) {
+							// assume this dep is satisfied
+						} else if (curProcdRecipe.available) {
 							if (!curProcdRecipe.willDownload) {
 								toDownload.push(curProcdRecipe);
 								curProcdRecipe.willDownload = true;
 							}
 						} else {
-							if (assumeSatisfied.indexOf(curProcdRecipe.name) != -1 ||
-								assumeSatisfied.indexOf(curProcdRecipe.name.replace(
-									'_' + secondaryArch, '')) != -1) {
-								// assume this dep is satisfied
-							} else {
-								graph.addDependency(recipe.name, curProcdRecipe.name);
-							}
+							graph.addDependency(recipe.name, curProcdRecipe.name);
 						}
 						satisfied = true;
 						break;
