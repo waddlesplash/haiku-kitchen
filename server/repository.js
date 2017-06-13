@@ -337,6 +337,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					processRequire(recipe.name, recipe.requires[j], true);
 			}
 		}
+		graph.dependantsOf('__broken').forEach(function (n) { graph.removeNode(n); });
+		graph.removeNode('__broken');
 		// If we're downloading packages, we need to download their deps too
 		for (var i in toDownload) {
 			var deps = graph.dependenciesOf(toDownload[i].name),
@@ -361,8 +363,6 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		}
 		graph.dependantsOf('__available').forEach(function (n) { graph.removeNode(n); });
 		graph.removeNode('__available');
-		graph.dependantsOf('__broken').forEach(function (n) { graph.removeNode(n); });
-		graph.removeNode('__broken');
 		return {graph: graph, toDownload: toDownload, ports: processedRecipes};
 	};
 
