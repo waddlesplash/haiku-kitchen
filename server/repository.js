@@ -280,16 +280,15 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 
 		// Build dependency list
 		var graph = new DepGraph(), toDownload = [];
-		graph.addNode('broken');
+		graph.addNode('__broken');
+		graph.addNode('__available');
 		for (var i in processedRecipes) {
-			if (!processedRecipes[i].available)
-				graph.addNode(processedRecipes[i].name);
+			graph.addNode(processedRecipes[i].name);
+			if (processedRecipes[i].available)
+				graph.addDependency(processedRecipes[i].name, '__available');
 		}
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
-			if (recipe.available)
-				continue; // already available in binary form
-
 			for (var j in recipe.requires) {
 				if (haikuProvides.indexOf(recipe.requires[j]) != -1)
 					continue; // provided by one of the base Haiku packages
@@ -308,6 +307,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 								toDownload.push(curProcdRecipe);
 								curProcdRecipe.willDownload = true;
 							}
+							graph.addDependency(recipe.name, curProcdRecipe.name);
 						} else {
 							graph.addDependency(recipe.name, curProcdRecipe.name);
 						}
@@ -316,11 +316,35 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					}
 				}
 				if (!satisfied)
-					graph.addDependency(recipe.name, 'broken');
+					graph.addDependency(recipe.name, '__broken');
 			}
 		}
-		graph.dependantsOf('broken').forEach(function (n) { graph.removeNode(n); });
-		graph.removeNode('broken');
+		// If we're downloading packages, we need to download their deps too
+		for (var i in toDownload) {
+			var deps = graph.dependenciesOf(toDownload[i].name),
+				depndts = graph.dependantsOf(toDownload[i].name);
+			for (var j in deps) {
+				if (deps[j] == "__available") {
+					// Don't do any of the following things; just remove it.
+				} else if (processedRecipes[deps[j]].available) {
+					if (!processedRecipes[deps[j]].willDownload) {
+						toDownload.push(processedRecipes[deps[j]]);
+						processedRecipes[deps[j]].willDownload = true;
+					}
+				} else {
+					// Make sure all the dependants of i depend on this
+					for (var k in depndts) {
+						graph.addDependency(depndts[k], deps[j]);
+					}
+				}
+				graph.removeDependency(toDownload[i], deps[j]);
+			}
+			graph.removeNode(toDownload[i].name);
+		}
+		graph.dependantsOf('__available').forEach(function (n) { graph.removeNode(n); });
+		graph.removeNode('__available');
+		graph.dependantsOf('__broken').forEach(function (n) { graph.removeNode(n); });
+		graph.removeNode('__broken');
 		return {graph: graph, toDownload: toDownload, ports: processedRecipes};
 	};
 
