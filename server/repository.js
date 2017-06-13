@@ -148,7 +148,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				shell.exec('cd ' + repoPath + ' && ' + cmd, {silent: true}, function (code, output) {
 					if (code !== 0) {
 						log("FAILED to run 'package_repo update': (exited with: %d): %s", code, output);
-						return;
+						// fall through: try to run SHA256sum anyway (lol package_repo)
 					}
 					afterPackageRepoExits();
 				});
