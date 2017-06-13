@@ -495,7 +495,6 @@ module.exports = function () {
 	  */
 	this.updateAllBuilders = function () {
 		log('updating builders');
-		var cmd = 'pkgman full-sync -y';
 		for (var builderName in thisThis.builders) {
 			var builder = thisThis.builders[builderName];
 			if (builder.status() != 'online') {
