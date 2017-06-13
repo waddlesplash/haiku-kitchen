@@ -248,18 +248,24 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		function processHighestVersions(highestVersions, secondaryArchSuffix) {
 			for (var i in highestVersions) {
 				var recipe = highestVersions[i];
-				var provides = [], requires = [];
+				var provides = [], requires = [], build_requires = [];
 				for (var i in recipe.provides) {
 					var procd = processItem(recipe.provides[i], recipe, secondaryArchSuffix);
 					if (procd.length === 0)
 						continue;
 					provides.push(procd);
 				}
+				for (var i in recipe.requires) {
+					var procd = processItem(recipe.requires[i], recipe, secondaryArchSuffix);
+					if (procd.length === 0)
+						continue;
+					requires.push(procd);
+				}
 				for (var i in recipe.build_requires) {
 					var procd = processItem(recipe.build_requires[i], recipe, secondaryArchSuffix);
 					if (procd.length === 0)
 						continue;
-					requires.push(procd);
+					build_requires.push(procd);
 				}
 				processedRecipes[recipe.name + secondaryArchSuffix] = {
 					name: recipe.name + secondaryArchSuffix,
@@ -267,19 +273,53 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 					revision: recipe.revision,
 					provides: provides,
 					requires: requires,
+					build_requires: build_requires,
 
 					available: fs.existsSync('data/packages/' + hpkgName(recipe, arch)),
 					arch: arch
 				};
 			}
 		}
+		var graph;
+		function processRequire(name, require, discardIfSameRecipe) {
+			if (haikuProvides.indexOf(require) != -1)
+				return; // provided by one of the base Haiku packages
+
+			// Iterate over everything and try to find what provides this.
+			var satisfied = false;
+			for (var k in processedRecipes) {
+				var curProcdRecipe = processedRecipes[k];
+				if (curProcdRecipe.provides.indexOf(require) != -1) {
+					if (discardIfSameRecipe && curProcdRecipe.name == name) {
+						// discard, it's the same recipe
+					} else if (assumeSatisfied.indexOf(curProcdRecipe.name) != -1 ||
+							assumeSatisfied.indexOf(curProcdRecipe.name.replace(
+								'_' + secondaryArch, '')) != -1) {
+						// assume this dep is satisfied
+					} else if (curProcdRecipe.available) {
+						if (!curProcdRecipe.willDownload) {
+							toDownload.push(curProcdRecipe);
+							curProcdRecipe.willDownload = true;
+						}
+						graph.addDependency(name, curProcdRecipe.name);
+					} else {
+						graph.addDependency(name, curProcdRecipe.name);
+					}
+					satisfied = true;
+					break;
+				}
+			}
+			if (!satisfied)
+				graph.addDependency(name, '__broken');
+		}
+
 		processHighestVersions(highestVersionForArch, '');
 		processHighestVersions(highestVersionForSecondaryArch, '_' + secondaryArch);
 		if (justReturnProcessedRecipes)
 			return processedRecipes;
 
 		// Build dependency list
-		var graph = new DepGraph(), toDownload = [];
+		graph = new DepGraph(), toDownload = [];
 		graph.addNode('__broken');
 		graph.addNode('__available');
 		for (var i in processedRecipes) {
@@ -289,34 +329,12 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		}
 		for (var i in processedRecipes) {
 			var recipe = processedRecipes[i];
-			for (var j in recipe.requires) {
-				if (haikuProvides.indexOf(recipe.requires[j]) != -1)
-					continue; // provided by one of the base Haiku packages
-
-				// Iterate over everything and try to find what provides this.
-				var satisfied = false;
-				for (var k in processedRecipes) {
-					var curProcdRecipe = processedRecipes[k];
-					if (curProcdRecipe.provides.indexOf(recipe.requires[j]) != -1) {
-						if (assumeSatisfied.indexOf(curProcdRecipe.name) != -1 ||
-								assumeSatisfied.indexOf(curProcdRecipe.name.replace(
-									'_' + secondaryArch, '')) != -1) {
-							// assume this dep is satisfied
-						} else if (curProcdRecipe.available) {
-							if (!curProcdRecipe.willDownload) {
-								toDownload.push(curProcdRecipe);
-								curProcdRecipe.willDownload = true;
-							}
-							graph.addDependency(recipe.name, curProcdRecipe.name);
-						} else {
-							graph.addDependency(recipe.name, curProcdRecipe.name);
-						}
-						satisfied = true;
-						break;
-					}
-				}
-				if (!satisfied)
-					graph.addDependency(recipe.name, '__broken');
+			if (!recipe.available) {
+				for (var j in recipe.build_requires)
+					processRequire(recipe.name, recipe.build_requires[j]);
+			} else {
+				for (var j in recipe.requires)
+					processRequire(recipe.name, recipe.requires[j], true);
 			}
 		}
 		// If we're downloading packages, we need to download their deps too
