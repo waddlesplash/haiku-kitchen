@@ -21,6 +21,7 @@ var assumeSatisfied = [
 	// Assume these packages are already available in some form.
 	// The installation guide specifically notes to install them.
 	'gcc',
+	'coreutils',
 	'zlib',
 	'binutils',
 	'libtool',
