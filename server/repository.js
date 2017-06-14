@@ -354,7 +354,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				depndts = graph.dependantsOf(toDownload[i].name);
 			} catch (e) {
 				// Probably was removed because broken. Skip.
-				return;
+				break;
 			}
 			for (var j in deps) {
 				if (deps[j] == "__available") {
