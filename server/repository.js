@@ -11,6 +11,7 @@ var log = require('debug')('kitchen:repository'), fs = require('fs'),
 	IRC = require('internet-relay-chat'), glob = require('glob'),
 	DepGraph = require('dependency-graph').DepGraph;
 
+// NOTE: if you change this, you MUST update the 'no-secondary-arch' glob below!
 var arches = [
 	['any'],
 	['x86_gcc2', 'x86'],
@@ -73,9 +74,10 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	global.transfer_app.use(express.static('data/packages/'));
 	var thisThis = this;
 
-	/* Returns the HPKG name, optionally in glob syntax */
+	/// Returns the HPKG name, optionally in glob syntax
+	/// NOTE that if you add any secondary arches, you MUST update the no-secondary-arch glob!
 	function hpkgName(recipe, arch, globbable) {
-		return recipe.name + (globbable ? '*-' : '-') +
+		return recipe.name + (globbable ? '!(_x86*)-' : '-') +
 			recipe.version + '-' +
 			recipe.revision + '-' +
 			(arch === false ? recipe.arch : arch) + '.hpkg';
