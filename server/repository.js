@@ -81,6 +81,14 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			(arch === false ? recipe.arch : arch) + '.hpkg';
 	}
 
+	this._getAvailableAnyArchPackages = function (putInto) {
+		var anyArchProcessedRecipes = this._buildDependencyGraph('any', '', true);
+		for (var i in anyArchProcessedRecipes) {
+			if (anyArchProcessedRecipes[i].available)
+				putInto[anyArchProcessedRecipes[i].name] = anyArchProcessedRecipes[i];
+		}
+	};
+
 	/**
 	  * @private
 	  * @memberof! RepositoryManager.prototype
@@ -91,11 +99,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			afterPackagesAreFetched, repoPath, afterPackagesAreSymlinked, afterPackageRepoExits;
 		if (arch == 'any')
 			return;
-		var anyArchProcessedRecipes = thisThis._buildDependencyGraph('any', '', true);
-		for (var i in anyArchProcessedRecipes) {
-			if (anyArchProcessedRecipes[i].available)
-				ports[anyArchProcessedRecipes[i].name] = anyArchProcessedRecipes[i];
-		}
+		thisThis._getAvailableAnyArchPackages(ports);
 		for (var i in ports) {
 			fetchablePorts++;
 			glob('data/packages/' + hpkgName(ports[i], false, true), function (err, files) {
@@ -221,7 +225,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				if (recipe[variable].indexOf(architecture) == -1)
 					continue;
 				if (object[recipe.name] === undefined ||
-					versionGreaterThan(object[recipe.name].version, recipe.version)) {
+						versionGreaterThan(object[recipe.name].version, recipe.version)) {
 					object[recipe.name] = recipe;
 				}
 			}
@@ -318,6 +322,9 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		if (justReturnProcessedRecipes)
 			return processedRecipes;
 
+		// Some packages may depend on any-arch packages; so get them now.
+		this._getAvailableAnyArchPackages(processedRecipes);
+
 		// Build dependency list
 		graph = new DepGraph();
 		graph.addNode('__broken');
@@ -343,7 +350,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		for (var i in toDownload) {
 			var deps, depndts;
 			try {
-				deps = graph.dependenciesOf(toDownload[i].name),;
+				deps = graph.dependenciesOf(toDownload[i].name);
 				depndts = graph.dependantsOf(toDownload[i].name);
 			} catch (e) {
 				// Probably was removed because broken. Skip.
