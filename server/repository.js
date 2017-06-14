@@ -172,7 +172,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 						log(err);
 						return;
 					}
-					fs.unlinkSync('data/repository/' + arch + '/current/');
+					try { fs.unlinkSync('data/repository/' + arch + '/current'); } catch (e) { /* ENOENT? */ }
 					fs.symlink(repoPath, 'data/repository/' + arch + '/current', function (err) {});
 					log('repository update for arch %s complete', arch);
 				});
