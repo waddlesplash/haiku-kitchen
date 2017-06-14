@@ -280,7 +280,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 				};
 			}
 		}
-		var graph;
+		var graph, toDownload = {};
 		function processRequire(name, require, discardIfSameRecipe) {
 			if (haikuProvides.indexOf(require) != -1)
 				return; // provided by one of the base Haiku packages
@@ -298,7 +298,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 						// assume this dep is satisfied
 					} else if (curProcdRecipe.available) {
 						if (!curProcdRecipe.willDownload) {
-							toDownload.push(curProcdRecipe);
+							toDownload[curProcdRecipe.name] = curProcdRecipe;
 							curProcdRecipe.willDownload = true;
 						}
 						graph.addDependency(name, curProcdRecipe.name);
@@ -319,7 +319,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			return processedRecipes;
 
 		// Build dependency list
-		graph = new DepGraph(), toDownload = [];
+		graph = new DepGraph();
 		graph.addNode('__broken');
 		graph.addNode('__available');
 		for (var i in processedRecipes) {
@@ -341,15 +341,22 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		graph.removeNode('__broken');
 		// If we're downloading packages, we need to download their deps too
 		for (var i in toDownload) {
-			var deps = graph.dependenciesOf(toDownload[i].name),
+			var deps, depndts;
+			try {
+				deps = graph.dependenciesOf(toDownload[i].name),;
 				depndts = graph.dependantsOf(toDownload[i].name);
+			} catch (e) {
+				// Probably was removed because broken. Skip.
+				return;
+			}
 			for (var j in deps) {
 				if (deps[j] == "__available") {
 					// Don't do any of the following things; just remove it.
 				} else if (processedRecipes[deps[j]].available) {
-					if (!processedRecipes[deps[j]].willDownload) {
-						toDownload.push(processedRecipes[deps[j]]);
-						processedRecipes[deps[j]].willDownload = true;
+					var dep = processedRecipes[deps[j]];
+					if (!dep.willDownload) {
+						toDownload[dep.name] = dep;
+						dep.willDownload = true;
 					}
 				} else {
 					// Make sure all the dependants of i depend on this
