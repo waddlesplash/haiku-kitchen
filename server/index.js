@@ -219,11 +219,17 @@ if (fs.existsSync('data/irc.json')) {
 				"of silicon gates, screaming along at billions of cycles per second.");
 			reply("And you?");
 			break;
+		case 'try-build-ports': {
+			var oldNum = buildsManagerbuildsManager.buildsSummary().length;
+			repositoryManager.buildPorts();
+			var newNum = buildsManagerbuildsManager.buildsSummary().length;
+			reply("Done; it looks like there are " + (oldNum - newNum) + " new builds.");
+			break;
+		}
 		case 'try-run-builds': {
 			var res = buildsManager.tryRunBuilds();
-			reply("Successfully started build%s %s; failed to start build%s %s.",
-				res.succeeded.length == 1 ? "" : "s", JSON.stringify(res.succeeded),
-				res.failed.length == 1 ? "" : "s", JSON.stringify(res.failed));
+			reply("Successfully started builds " + JSON.stringify(res.succeeded) +
+				"; failed to start builds " + JSON.stringify(res.failed) +  ".");
 			break;
 		}
 		case 'update-all-builders':
