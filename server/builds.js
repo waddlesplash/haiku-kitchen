@@ -100,7 +100,7 @@ module.exports = function (builderManager) {
 		this._writeBuilds();
 		for (var i in thisThis._buildFinishedCallbacks)
 			thisThis._buildFinishedCallbacks[i](build);
-		this._tryRunBuilds();
+		this.tryRunBuilds();
 	};
 	/**
 	  * @private
@@ -201,11 +201,12 @@ module.exports = function (builderManager) {
 		nextCommand();
 	};
 	/**
-	  * @private
+	  * @public
 	  * @memberof! BuildsManager.prototype
-	  * @description Looks for available builders to run all pending builds on.
+	  * @description Looks for available builders to run all pending builds on
+	  * and starts them if it can.
 	  */
-	this._tryRunBuilds = function () {
+	this.tryRunBuilds = function () {
 		var availableBuilderNames = [];
 		for (var builderName in builderManager.builders) {
 			if (builderManager.builders[builderName].status() == 'online')
@@ -234,7 +235,7 @@ module.exports = function (builderManager) {
 			delete availableBuilderNames[availableBuilderNames.indexOf(builds[i].builderName)];
 		}
 
-		var failed = [];
+		var failed = [], succeeded = [];
 		for (var i in builds) {
 			if (builds[i].status != 'pending')
 				continue;
@@ -244,11 +245,14 @@ module.exports = function (builderManager) {
 				continue;
 			}
 			this._runBuildOn(availableBuilderNames[index], builds[i]);
+			succeeded.push(builds[i].id);
 			delete availableBuilderNames[index];
 		}
-		if (failed.length > 0)
+		if (failed.length > 0) {
 			log("failed to schedule build%s %s: no matching builders",
 				failed.length > 1 ? "s" : "", JSON.stringify(failed));
+		}
+		return {failed: failed, succeeded: succeeded};
 	};
 
 	/**
@@ -269,7 +273,7 @@ module.exports = function (builderManager) {
 		build.lastTime = new Date();
 		builds[build.id] = build;
 		log("build #%d ('%s') created", build.id, build.description);
-		this._tryRunBuilds();
+		this.tryRunBuilds();
 	};
 	/**
 	  * @public
@@ -308,6 +312,6 @@ module.exports = function (builderManager) {
 	};
 
 	builderManager.onBuilderConnected(function (name) {
-		thisThis._tryRunBuilds();
+		thisThis.tryRunBuilds();
 	});
 };

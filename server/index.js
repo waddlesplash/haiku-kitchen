@@ -219,6 +219,13 @@ if (fs.existsSync('data/irc.json')) {
 				"of silicon gates, screaming along at billions of cycles per second.");
 			reply("And you?");
 			break;
+		case 'try-run-builds': {
+			var res = buildsManager.tryRunBuilds();
+			reply("Successfully started build%s %s; failed to start build%s %s.",
+				res.succeeded.length == 1 ? "" : "s", JSON.stringify(res.succeeded),
+				res.failed.length == 1 ? "" : "s", JSON.stringify(res.failed));
+			break;
+		}
 		case 'update-all-builders':
 			builderManager.updateAllBuilders();
 			reply("Update started.");
