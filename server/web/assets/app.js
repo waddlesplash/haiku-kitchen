@@ -223,6 +223,7 @@ function loadOutput(liNode, aNode) {
 				'<br><span>Command exited with code ' + data.exitcode + '.</span>');
 			$(aNode).html('output');
 			aNode.click();
+			textarea[0].scrollTop = textarea[0].scrollHeight;
 		});
 }
 /**
