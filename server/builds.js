@@ -119,12 +119,14 @@ module.exports = function (builderManager) {
 			log("failed to start build #%d because builder '%s' had status '%s'", builder.status());
 			return;
 		}
-		log('starting build #%d on builder \'%s\'...', build.id, builderName);
-		build.lastTime = new Date();
-		build.builderName = builderName;
-		build.stepsSucceeded = 0;
-		build.nextStep = 0;
-		this._resumeBuild(build);
+		builderManager._updateHaikuportsTreeOn(builderName, function () {
+			log('starting build #%d on builder \'%s\'...', build.id, builderName);
+			build.lastTime = new Date();
+			build.builderName = builderName;
+			build.stepsSucceeded = 0;
+			build.nextStep = 0;
+			thisThis._resumeBuild(build);
+		});
 	};
 	this._resumeBuild = function (build) {
 		var builder = builderManager.builders[build.builderName];
