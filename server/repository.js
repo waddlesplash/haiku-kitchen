@@ -220,7 +220,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 
 		// Pass 1: Find the highest-version recipe for the arch.
 		function filterInto(object, recipes, variable, architecture) {
-			if (architecture === undefined)
+			if (!architecture)
 				return;
 			for (var i in recipes) {
 				var recipe = recipes[i];
@@ -325,7 +325,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			return processedRecipes;
 
 		// Some packages may depend on any-arch packages; so get them now.
-		this._getAvailableAnyArchPackages(processedRecipes);
+		if (arch != "any")
+			this._getAvailableAnyArchPackages(processedRecipes);
 
 		// Build dependency list
 		graph = new DepGraph();
