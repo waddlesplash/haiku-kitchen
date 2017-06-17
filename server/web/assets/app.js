@@ -249,6 +249,16 @@ function buildOutput(e) {
 global.buildOutput = buildOutput;
 
 /**
+  * Event handler called when the "current step" link is clicked.
+  * @param {Object} e The `onclick` event object.
+  */
+function scrollToCurrentStep(e) {
+	e.preventDefault();
+	$("html, body").animate({scrollTop: $("#currentStep").offset().top}, 0);
+}
+global.scrollToCurrentStep = scrollToCurrentStep;
+
+/**
   * Generates the Build page and shows it.
   * @param {string} pageData The fetched builds pagedata.
   */
@@ -257,6 +267,7 @@ function showBuildPage(pageData) {
 		.done(function (data) {
 			$('#pageContentsBody').html(pageData);
 
+			$("#currently").hide();
 			$("#builderName").text(data.builder);
 			$("#statusName").text(getFriendlyNameForStatus(data.status));
 			$("#buildStatus").addClass('status-' + data.status);
@@ -266,10 +277,11 @@ function showBuildPage(pageData) {
 			else
 				$("#stepsText").text(data.steps.length);
 
-			if (data.status == 'running')
+			if (data.status == 'running') {
 				$("#builtOrBuilding").text('building on');
-			else if (data.status != 'failed' &&
-				data.status != 'succeeded') {
+				$("#currently").show();
+			} else if (data.status != 'failed' &&
+						data.status != 'succeeded') {
 				$("#builder").hide();
 			} else {
 				$("#duration").show();
@@ -295,8 +307,14 @@ function showBuildPage(pageData) {
 					status = step.status;
 				else
 					status = 'pending';
-				var item = '<li class="status-' + status + '" step="' + i + '">';
-				item += step.command.replace('KITCHEN_SERVER_ADDRESS', '');
+				var item = '<li class="status-' + status + '" step="' + i + '"';
+				var cmd = step.command.replace('KITCHEN_SERVER_ADDRESS', '');
+				if (status == "running") {
+					$("#currentlyText").text(cmd);
+					item += ' id="currentStep"';
+				}
+				item += ">";
+				item += cmd;
 				if (step.output) {
 					item += '<a href="#" onclick="buildOutput(event);">load</a>';
 					item += '<div class="textarea"></div>';
