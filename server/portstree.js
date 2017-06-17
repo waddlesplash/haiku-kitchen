@@ -215,7 +215,7 @@ module.exports = function () {
 					thisThis._pullFinishedCallbacks[i]();
 			} else {
 				log('git-pull finished, doing incremental cache update...');
-				var cmd = 'cd cache/haikuports && git diff ' + thisThis._HEAD + '..HEAD --numstat';
+				var cmd = 'cd cache/haikuports && git diff ' + thisThis._HEAD + '..HEAD --numstat --find-renames=100%';
 				shell.exec(cmd, {silent: true}, function (code, output) {
 					if (code !== 0) {
 						log("git-diff did not exit with 0: '%s', performing " +
