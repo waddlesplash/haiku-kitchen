@@ -224,13 +224,13 @@ if (fs.existsSync('data/irc.json')) {
 			for (var i in builds) {
 				if (builds[i].status == 'pending' || builds[i].status == 'running') {
 					reply("There are builds presently running; I'm not going to schedule more right now.");
-					break;
+					return;
 				}
 			}
 			var oldNum = buildsManager.buildsSummary().length;
 			repositoryManager.buildPorts();
 			var newNum = buildsManager.buildsSummary().length;
-			reply("Done; it looks like there are " + (oldNum - newNum) + " new builds.");
+			reply("Done; it looks like there are " + (newNum - oldNum) + " new builds.");
 			break;
 		}
 		case 'try-run-builds': {
