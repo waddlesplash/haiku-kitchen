@@ -227,9 +227,9 @@ if (fs.existsSync('data/irc.json')) {
 					break;
 				}
 			}
-			var oldNum = buildsManagerbuildsManager.buildsSummary().length;
+			var oldNum = buildsManager.buildsSummary().length;
 			repositoryManager.buildPorts();
-			var newNum = buildsManagerbuildsManager.buildsSummary().length;
+			var newNum = buildsManager.buildsSummary().length;
 			reply("Done; it looks like there are " + (oldNum - newNum) + " new builds.");
 			break;
 		}
