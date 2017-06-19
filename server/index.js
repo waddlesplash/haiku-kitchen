@@ -221,12 +221,6 @@ if (fs.existsSync('data/irc.json')) {
 			break;
 		case 'try-build-ports': {
 			var builds = buildsManager.builds();
-			for (var i in builds) {
-				if (builds[i].status == 'pending' || builds[i].status == 'running') {
-					reply("There are builds presently running; I'm not going to schedule more right now.");
-					return;
-				}
-			}
 			var oldNum = buildsManager.buildsSummary().length;
 			repositoryManager.buildPorts();
 			var newNum = buildsManager.buildsSummary().length;
