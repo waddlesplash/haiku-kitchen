@@ -34,7 +34,7 @@ module.exports = function (builderManager) {
 		// Remove all pending/running builds, as we can't use them because
 		// they don't have the callbacks & proper states in them
 		for (var i in builds) {
-			if (builds[i].status == 'pending' || builds[i].status == 'running')
+			if (builds[i].status == 'pending' || builds[i].status == 'running' || builds[i].status == 'stalled')
 				delete builds[i];
 		}
 		// Reset nextBuildId
