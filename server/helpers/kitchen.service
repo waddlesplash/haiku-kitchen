@@ -1,0 +1,13 @@
+[Unit]
+Description=Kitchen, A Haiku Package Build Service
+
+[Service]
+Type=simple
+Environment="DEBUG=*,-express*,-send"
+PIDFile=/var/run/kitchen.pid
+ExecStart=/usr/bin/node /usr/local/share/kitchen/server/index.js --port=8032
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
