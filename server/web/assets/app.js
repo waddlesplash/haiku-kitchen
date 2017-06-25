@@ -12,7 +12,7 @@ var global = this;
 var webApp = function () {
 
 /** (constant) The possible architectures, in order. */
-var kArchitectures = ['x86', 'x86_64', 'x86_gcc2', 'arm', 'ppc'];
+var kArchitectures = ['x86_gcc2', 'x86_64'];
 
 function loc() {
 	// window.location minus hash.
@@ -97,6 +97,19 @@ function showHomePage(data) {
 }
 
 /**
+ * Returns the HTML code for an "OK" or "X" icon.
+ * @param {bool|undefined} b The value to check.
+ */
+function checkicon(b) {
+	if (b === true) {
+		return '<i class="fa fa-check-circle"></i><span>true</span>';
+	} else if (b === false) {
+		return '<i class="fa fa-times-circle"></i><span>false</span>';
+	}
+	return '<i class="fa fa-question-circle"></i><span>?</span>';
+}
+
+/**
   * Generates the Recipes page and shows it.
   * @param {string} data The fetched recipes pagedata.
   */
@@ -111,18 +124,16 @@ function showRecipesPage(pageData) {
 					'<td>' + data[i].category + '</td>' +
 					'<td>' + data[i].version + '</td>' +
 					'<td>' + data[i].revision + '</td><td>';
-				if (data[i].lint === true)
-					html += '<i class="fa fa-check-circle"></i><span>true</span>';
-				else if (data[i].lint === false)
-					html += '<i class="fa fa-times-circle"></i><span>false</span>';
-				else
-					html += '<i class="fa fa-question-circle"></i><span>?</span>';
+				html += checkicon(data[i].lint);
 				html += "</td>";
 				for (var a in kArchitectures) {
 					var arch = kArchitectures[a];
 					html += "<td>";
-					if (arch in data[i] && data[i][arch])
+					if (data[i].arches.indexOf(arch) == -1) {
+						html += checkicon(false);
+					} else if (arch in data[i] && data[i][arch]) {
 						html += '<a href="' + data[i][arch] + '"><i class="fa fa-archive"></i></a>';
+					}
 					html += "</td>";
 				}
 				html += "</tr>";

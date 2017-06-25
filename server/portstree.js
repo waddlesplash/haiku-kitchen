@@ -46,6 +46,7 @@ module.exports = function () {
 			var recipe = this.recipes[i];
 			newClientRecipes.push({
 				name: recipe.name,
+				arches: recipe.architectures,
 				category: recipe.category,
 				version: recipe.version,
 				revision: recipe.revision,
