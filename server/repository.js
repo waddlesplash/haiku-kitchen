@@ -186,32 +186,32 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	  * @description Private handler for _dependencyGraphFor().
 	  */
 	this._buildDependencyGraph = function (arch, secondaryArch, justReturnProcessedRecipes) {
-		function versionGreaterThan (v1, v2) {
+		function versionGreaterThan(v1, v2) {
+			function ZOE(thing) {
+				if (Array.isArray(thing))
+					return thing[0];
+				if (thing !== undefined)
+					return thing;
+				return '';
+			}
+
 			if (v1 === undefined && v2 !== undefined)
 				return true;
 			if (v2 === undefined && v1 !== undefined ||
-				v1 === undefined && v2 === undefined)
+					v1 === undefined && v2 === undefined)
 				return false;
 			var v1a = v1.split('.'), v2a = v2.split('.');
-			for (var i = 0; i < Math.min(v1.length, v2.length); i++) {
-				// First see if they aren't numbers.
-				var is1int = /^\d+$/.test(v1a[i]), is2int = /^\d+$/.test(v2a[i]);
-				if (!is1int && !is2int) {
-					if (v1a[i] != v2a[i])
-						return v2a[i] > v1a[i];
-					continue;
-				}
-				if (!is1int && is2int)
-					return true;
-				if (is1int && !is2int)
-					return false;
+			for (var i = 0; i < Math.min(v1a.length, v2a.length); i++) {
+				// Split into 'numeric' and 'non-numeric' parts.
+				var int1 = parseInt(ZOE(v1a[i].match(/^\d+/))), int2 = parseInt(ZOE(v2a[i].match(/^\d+/))),
+					an1 = ZOE(v1a[i].match(/(?!\d+).*/)), an2 = ZOE(v2a[i].match(/(?!\d+).*/));
+				if (isNaN(int1)) int1 = 0;
+				if (isNaN(int2)) int2 = 0;
 
-				// Now interpret them as numbers.
-				var v1iI = parseInt(v1a[i]), v2iI = parseInt(v2a[i]);
-				if (v2iI > v1iI)
-					return true;
-				if (v2iI < v1iI)
-					return false;
+				if (int1 != int2)
+					return int2 > int1;
+				if (an1 != an2)
+					return an2 > an1;
 			}
 			if (v2a.length > v1a.length)
 				return true;
