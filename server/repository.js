@@ -420,14 +420,18 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 	this.buildPorts = function () {
 		for (var i in arches) {
 			// If there's already a pending build for this arch, don't queue another
-			for (var i in buildsManager.builds) {
-				if (buildsManager.builds[i].architecture == arches[i] &&
-						(buildsManager.builds[i].status == 'pending' ||
-							buildsManager.builds[i].status == 'stalled' ||
-							buildsManager.builds[i].status == 'running')) {
-					continue;
+			var continu = false;
+			for (var j in buildsManager.builds()) {
+				if (buildsManager.builds()[j].architecture == arches[i] &&
+						(buildsManager.builds()[j].status == 'pending' ||
+							buildsManager.builds()[j].status == 'stalled' ||
+							buildsManager.builds()[j].status == 'running')) {
+					continu = true;
+					break;
 				}
 			}
+			if (continu)
+				continue;
 
 			var retval = this._dependencyGraphFor(arches[i][0], arches[i][1]);
 			if (retval === undefined)
