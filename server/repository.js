@@ -468,7 +468,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 
 			for (var j in retval.toDownload) {
 				var globd = glob.sync('data/packages/' + hpkgName(retval.toDownload[j],
-					arches[i][0], true));
+					(retval.toDownload[j].arch == 'any') ? 'any' : arches[i][0], true));
 				for (var k in globd) {
 					if (globd[k].indexOf("source.hpkg") != -1)
 						continue;
