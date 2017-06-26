@@ -55,7 +55,7 @@ module.exports = function (filepath) {
 		return newStr.trim().split(/\s*\n+\s*/);
 	}
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
-	var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES',
+	var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES', 'REPLACES',
 		'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
 	for (var i = 0; i < rawRecipe.length; i++) {
 		if (rawRecipe[i] == '{') {
@@ -99,7 +99,7 @@ module.exports = function (filepath) {
 					i++;
 				}
 
-				if (variables[v].indexOf('PROVIDES') === 0)
+				if (variables[v].indexOf('PROVIDES') === 0 || variables[v].indexOf('REPLACES') === 0)
 					this.provides.push.apply(this.provides, parseList(str));
 				else if (variables[v].indexOf('REQUIRES') === 0)
 					this.requires.push.apply(this.requires, parseList(str));

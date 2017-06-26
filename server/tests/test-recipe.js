@@ -63,5 +63,27 @@ module.exports = {
 				'lib:libstdc++$secondaryArchSuffix',
 				'clang$secondaryArchSuffix == $portVersion base']));
 		test.done();
+	},
+	'mako-1.0.3': function (test) {
+		// This recipe needs handling for python2/python3
+		var mako = new Recipe('recipe/mako-1.0.3.recipe');
+		test.strictEqual(JSON.stringify(mako), JSON.stringify({name: 'mako',
+		  version: '1.0.3',
+		  category: undefined,
+		  provides:
+		   [ 'mako = $portVersion',
+			 'cmd:mako_render',
+			 'python_mako',
+			 'cmd:mako_render3',
+			 'python3_mako' ],
+		  requires: [ 'haiku', 'haiku', 'cmd:python$pythonVersion' ],
+		  build_requires:
+		   [ 'haiku_devel',
+			 'setuptools_$pythonPackage',
+			 'cmd:python$pythonVersion' ],
+		  architectures: [ 'any' ],
+		  secondaryArchitectures: [],
+		  revision: '1' }));
+		test.done();
 	}
 };
