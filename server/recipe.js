@@ -78,9 +78,24 @@ module.exports = function (filepath) {
 				i++;
 				var str = '';
 				while (rawRecipe[i] != strEndChar && i < rawRecipe.length) {
-					if (rawRecipe[i] == "\\")
+					if (rawRecipe[i] == "\\") {
 						i++;
-					str += rawRecipe[i];
+						switch (rawRecipe[i]) {
+						case "r": str += "\r"; break;
+						case "n": str += "\n"; break;
+						case "t": str += "\t"; break;
+						case '"': str += ''; break;
+						case "\r": str += "\r"; break;
+						case "\n": str += "\n"; break;
+						case "\\": str += "\\"; break;
+						default:
+							console.log("WARN: unknown escape sequence: \\" + rawRecipe[i]);
+							s += rawRecipe[i];
+							break;
+						}
+					} else {
+						str += rawRecipe[i];
+					}
 					i++;
 				}
 
@@ -104,14 +119,17 @@ module.exports = function (filepath) {
 	// Hacks to remove $PROVIDES and $REQUIRES
 	var newProvides = [];
 	for (var i in this.provides) {
-		if (this.provides[i] == '$PROVIDES')
+		if (this.provides[i].indexOf('$PROVIDES') == 0)
 			continue;
-		newProvides.push(this.provides[i]);
+		newProvides.push(this.provides[i]
+			.replace(/\$portName/g, this.name)
+			.replace(/\${portName}/g, this.name)
+		);
 	}
 	this.provides = newProvides;
 	var newRequires = [];
 	for (var i in this.requires) {
-		if (this.requires[i] == '$REQUIRES')
+		if (this.requires[i].indexOf('$REQUIRES') == 0)
 			continue;
 		newRequires.push(this.requires[i]);
 	}
@@ -119,6 +137,8 @@ module.exports = function (filepath) {
 	newRequires = [];
 	for (var i in this.build_requires) {
 		if (this.build_requires[i] == '$BUILD_REQUIRES')
+			continue;
+		if (this.build_requires[i] == '$BUILD_PREREQUIRES')
 			continue;
 		newRequires.push(this.build_requires[i]);
 	}
