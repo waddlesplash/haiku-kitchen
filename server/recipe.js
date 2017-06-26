@@ -90,7 +90,7 @@ module.exports = function (filepath) {
 						case "\\": str += "\\"; break;
 						default:
 							console.log("WARN: unknown escape sequence: \\" + rawRecipe[i]);
-							s += rawRecipe[i];
+							str += rawRecipe[i];
 							break;
 						}
 					} else {
