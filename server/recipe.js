@@ -121,10 +121,14 @@ module.exports = function (filepath) {
 	for (var i in this.provides) {
 		if (this.provides[i].indexOf('$PROVIDES') == 0)
 			continue;
-		newProvides.push(this.provides[i]
+		var provide = this.provides[i]
 			.replace(/\$portName/g, this.name)
-			.replace(/\${portName}/g, this.name)
-		);
+			.replace(/\${portName}/g, this.name);
+		if (provide.indexOf('$pythonPackage') != -1) {
+			newProvides.push(provide.replace('$pythonPackage', 'python'));
+			newProvides.push(provide.replace('$pythonPackage', 'python3'));
+		}
+		newProvides.push(provide);
 	}
 	this.provides = newProvides;
 	var newRequires = [];
