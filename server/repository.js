@@ -31,12 +31,13 @@ var assumeSatisfied = [
 	'bison',
 	'flex',
 	'grep',
-	'sed',
+	'sed', 'cmd:sed',
 	'tar',
 	'autoconf', 'automake',
 	'gettext',
 	'bash',
 	'file',
+	'cmd:python$pythonversion',
 ];
 var haikuProvides = JSON.parse(fs.readFileSync('haiku_packages.json'), {encoding: 'UTF-8'});
 
@@ -290,6 +291,8 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		function processRequire(name, require, discardIfSameRecipe) {
 			if (haikuProvides.indexOf(require) != -1)
 				return; // provided by one of the base Haiku packages
+			if (assumeSatisfied.indexOf(require) != -1)
+				return; // directly provided by an assumed-satisfied
 
 			// Iterate over everything and try to find what provides this.
 			var satisfied = false;
@@ -421,11 +424,13 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 		for (var i in arches) {
 			// If there's already a pending build for this arch, don't queue another
 			var continu = false;
-			for (var j in buildsManager.builds()) {
-				if (buildsManager.builds()[j].architecture == arches[i] &&
-						(buildsManager.builds()[j].status == 'pending' ||
-							buildsManager.builds()[j].status == 'stalled' ||
-							buildsManager.builds()[j].status == 'running')) {
+			var builds = buildsManager.builds();
+			for (var j in builds) {
+				if (builds[j].architecture == arches[i] &&
+						builds[j].description.indexOf("lint") != 0 &&
+						(builds[j].status == 'pending' ||
+							builds[j].status == 'stalled' ||
+							builds[j].status == 'running')) {
 					continu = true;
 					break;
 				}
