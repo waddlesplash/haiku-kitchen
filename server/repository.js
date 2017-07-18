@@ -426,7 +426,7 @@ module.exports = function (builderManager, buildsManager, portsTree) {
 			var continu = false;
 			var builds = buildsManager.builds();
 			for (var j in builds) {
-				if (builds[j].architecture == arches[i] &&
+				if (builds[j].architecture == arches[i][0] &&
 						builds[j].description.indexOf("lint") != 0 &&
 						(builds[j].status == 'pending' ||
 							builds[j].status == 'stalled' ||
