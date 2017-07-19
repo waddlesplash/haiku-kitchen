@@ -62,6 +62,7 @@ buildsManager.onBuildFinished(function (build) {
 		'. Someone please investigate!');
 });
 
+var notifyOnPortsTreeFinished = false;
 /**
   * Creates a job to lint the specified recipes.
   * @param {array} recipes The recipes to be linted.
@@ -88,10 +89,9 @@ function createJobToLintRecipes(recipes, desc) {
 	buildsManager.addBuild(build);
 }
 portsTree.onPullFinished(function () {
-	var builds = buildsManager.builds();
-	for (var i in builds) {
-		if (builds[i].status == 'pending' || builds[i].status == 'running')
-			return; // don't start any new builds right now
+	if (notifyOnPortsTreeFinished) {
+		notifyOnPortsTreeFinished = false;
+		ircNotify('Ports tree pull finished.');
 	}
 
 	var recipesToLint = [];
@@ -101,10 +101,8 @@ portsTree.onPullFinished(function () {
 	}
 	if (recipesToLint.length === 0)
 		return; // nothing changed in the tree
-	builderManager.updateAllHaikuportsTrees(function () {
-		createJobToLintRecipes(recipesToLint);
-		repositoryManager.buildPorts();
-	});
+	createJobToLintRecipes(recipesToLint);
+	repositoryManager.buildPorts();
 });
 
 var repositoryManager = global.repositoryManager =
@@ -225,6 +223,11 @@ if (fs.existsSync('data/irc.json')) {
 			repositoryManager.buildPorts();
 			var newNum = buildsManager.buildsSummary().length;
 			reply("Done; it looks like there are " + (newNum - oldNum) + " new builds.");
+			break;
+		}
+		case 'update-ports-tree': {
+			portsTree.update();
+			notifyOnPortsTreeFinished = true;
 			break;
 		}
 		case 'try-run-builds': {
