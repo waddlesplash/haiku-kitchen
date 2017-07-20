@@ -225,7 +225,6 @@ div.bordered .heading, div.builder .heading {
 	font-size: 14px;
 }
 #buildSteps li {
-	max-width: 630px;
 	margin: 3px 0px;
 	padding: 1px 3px;
 }
