@@ -228,6 +228,9 @@ div.bordered .heading, div.builder .heading {
 	margin: 3px 0px;
 	padding: 1px 3px;
 }
+#buildSteps li:not(.outputVisible) {
+	max-width: 630px;
+}
 #buildSteps li a {
 	float: right;
 }

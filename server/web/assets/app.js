@@ -320,7 +320,9 @@ function showBuildPage(pageData) {
 				else
 					status = 'pending';
 				var item = '<li class="status-' + status + '" step="' + i + '"';
-				var cmd = step.command.replace('KITCHEN_SERVER_ADDRESS', '');
+				var cmd = step.command
+					.replace('cd ~/haikuports/packages && ', '')
+					.replace('--no-check-certificate https://KITCHEN_SERVER_ADDRESS:5825', '...');
 				if (status == "running") {
 					$("#currentlyText").text(cmd);
 					item += ' id="currentStep"';
