@@ -203,6 +203,8 @@ function Builder(builderManager, name, data) {
 			command: 'uname -a'});
 		this._sendMessage({what: 'command', replyWith: 'memsize',
 			command: "vmstat | awk '{print $3}' | head -1"});
+		this._sendMessage({what: 'command', replyWith: 'freespace',
+			command: "df ~/haikuports/ | fgrep 'Free Blocks' | awk -F' ' '{ print $3; print $4 }'"});
 		this._sendMessage({what: 'command', replyWith: 'archlist',
 			command: 'setarch -l'});
 		builderManager._ensureHaikuportsTreeOn(this.name);
@@ -242,6 +244,9 @@ function Builder(builderManager, name, data) {
 			break;
 		case 'memsize':
 			this.memsize = parseInt(msg.output.trim());
+			break;
+		case 'freespace':
+			this.freespace = msg.output.trim().replace(/\s+/g, ' ');
 			break;
 		case 'archlist':
 			var archlist = msg.output.trim().replace(/\n/g, ' ').split(' ');

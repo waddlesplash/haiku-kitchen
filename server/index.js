@@ -130,6 +130,7 @@ app.get('/api/builders', function (request, response) {
 		respJson[i] = {
 			owner: builder.data.owner,
 			memsize: builder.memsize,
+			freespace: builder.freespace,
 			hrev: builder.hrev,
 			cores: builder.cores,
 			architecture: builder.data.architecture,
