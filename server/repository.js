@@ -16,7 +16,7 @@ var arches = [
 	['any'],
 	['x86_gcc2', 'x86'],
 //	['x86', 'x86_gcc2'],
-//	['x86_64']
+	['x86_64']
 ];
 var assumeSatisfied = [
 	// Assume these packages are already available in some form.
