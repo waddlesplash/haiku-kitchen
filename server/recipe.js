@@ -56,7 +56,7 @@ module.exports = function (filepath) {
 	}
 	var rawRecipe = fs.readFileSync(filepath, {encoding: 'UTF-8'});
 	var variables = ['REVISION', 'ARCHITECTURES', 'SECONDARY_ARCHITECTURES', 'PROVIDES', 'REPLACES',
-		'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES'];
+		'REQUIRES', 'BUILD_REQUIRES', 'BUILD_PREREQUIRES', 'eval'];
 	for (var i = 0; i < rawRecipe.length; i++) {
 		if (rawRecipe[i] == '{') {
 			var scope = 1;
@@ -70,7 +70,7 @@ module.exports = function (filepath) {
 		}
 		for (var v in variables) {
 			if ((i === 0 || /\s/.test(rawRecipe[i - 1])) &&
-				rawRecipe.substr(i, variables[v].length) == variables[v]) {
+					rawRecipe.substr(i, variables[v].length) == variables[v]) {
 				i += variables[v].length;
 				while (rawRecipe[i] != '"' && rawRecipe[i] != "'" && i < rawRecipe.length)
 					i++;
@@ -84,7 +84,7 @@ module.exports = function (filepath) {
 						case "r": str += "\r"; break;
 						case "n": str += "\n"; break;
 						case "t": str += "\t"; break;
-						case '"': str += ''; break;
+						case '"': str += '"'; break;
 						case "\r": str += "\r"; break;
 						case "\n": str += "\n"; break;
 						case "\\": str += "\\"; break;
@@ -99,19 +99,22 @@ module.exports = function (filepath) {
 					i++;
 				}
 
-				if (variables[v].indexOf('PROVIDES') === 0 || variables[v].indexOf('REPLACES') === 0)
+				if (variables[v] == 'eval') {
+					rawRecipe += "\n" + str + "\n";
+				} else if (variables[v].indexOf('PROVIDES') === 0 || variables[v].indexOf('REPLACES') === 0) {
 					this.provides.push.apply(this.provides, parseList(str));
-				else if (variables[v].indexOf('REQUIRES') === 0)
+				} else if (variables[v].indexOf('REQUIRES') === 0) {
 					this.requires.push.apply(this.requires, parseList(str));
-				else if (variables[v] == 'ARCHITECTURES')
+				} else if (variables[v] == 'ARCHITECTURES') {
 					this.architectures.push.apply(this.architectures, str.trim().split(/\s+/g));
-				else if (variables[v] == 'SECONDARY_ARCHITECTURES')
+				} else if (variables[v] == 'SECONDARY_ARCHITECTURES') {
 					this.secondaryArchitectures.push.apply(this.secondaryArchitectures,
 						str.trim().split(/\s+/g));
-				else if (variables[v].indexOf('BUILD') === 0)
+				} else if (variables[v].indexOf('BUILD') === 0) {
 					this.build_requires.push.apply(this.build_requires, parseList(str));
-				else
+				} else {
 					this[variables[v].toLowerCase()] = str.trim();
+				}
 			}
 		}
 	}
