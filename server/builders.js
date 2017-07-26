@@ -532,7 +532,10 @@ module.exports = function () {
 				builder.status('online');
 			} else {
 				log('git-pull on builder %s failed: %s', builderName, output.trim());
-				builder.status('broken');
+				log('trying fresh clone on %s', builderName);
+				builder.runCommand('rm -rf ~/haikuports/*');
+				builder.runCommand('rm -rf ~/haikuporter/*');
+				thisThis._ensureHaikuportsTreeOn(builderName);
 				return;
 			}
 			if (callback !== undefined)
