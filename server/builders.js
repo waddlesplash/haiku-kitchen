@@ -597,9 +597,9 @@ module.exports = function () {
 			cmd = 'cd ~ && git clone https://github.com/haikuports/haikuporter.git ' +
 				'--depth=1 && git clone https://github.com/haikuports/haikuports.git --depth=1';
 			builder.runCommand(cmd, function (exitcode, output) {
-				if (exitcode === 0)
+				if (exitcode === 0) {
 					treeIsReady();
-				else {
+				} else {
 					log('git-clone on builder %s failed: %s', builderName, output.trim());
 					builder.status('broken');
 				}
@@ -626,6 +626,18 @@ module.exports = function () {
 			});
 		});
 		builder.runCommand('ln -s ~/haikuporter/haikuporter /system/non-packaged/bin/haikuporter');
+
+		// Ensure debug_server settings file is in place
+		const dbgfile = '~/config/settings/system/debug_server/settings';
+		builder.runCommand('test -f ' + dbgfile, function (exitcode, output) {
+			if (exitcode === 0)
+				return;
+			var cmd = ['"executable_actions {"', '"	* report"', '"}"'];
+			cmd = cmd.join(' >>' + dbgfile + ' && echo ');
+			cmd = 'mkdir -p ~/config/settings/system/debug_server && ' +
+				'rm -f ' + dbgfile + ' && echo ' + cmd + ' >>' + dbgfile;
+			builder.runCommand(cmd);
+		});
 	};
 
 	this._builderConnectedCallbacks = [];
