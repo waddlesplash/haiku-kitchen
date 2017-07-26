@@ -44,7 +44,7 @@ deleting will still reference the builder by name.
 ### Running (development mode)
 Install the `npm` dependencies with `npm install`, and then run:
 ```
-DEBUG=*,-express*,-send node index.js --port=8081
+DEBUG=*,-express*,-send,-finalhandler node index.js --port=8081
 ```
 On Windows, use `set DEBUG=*,-express*,-send` on a separate line instead.
 
