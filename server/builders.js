@@ -248,14 +248,29 @@ function Builder(builderManager, name, data) {
 		case 'freespace':
 			this.freespace = msg.output.trim().replace(/\s+/g, ' ');
 			break;
-		case 'archlist':
+		case 'archlist': {
 			var archlist = msg.output.trim().replace(/\n/g, ' ').split(' ');
 			this.data.architecture = archlist[0];
 			if (archlist.length == 2)
 				this.data.flavor = 'hybrid';
 			else
 				this.data.flavor = 'pure';
-			break;
+			// Now that we have the archlist: we can install all relevant packages.
+			let pkgs = 'pkgman install -y gcc zlib_devel binutils libtool ' +
+				'gawk make bison flex grep sed tar autoconf automake gettext bash ' +
+				'file file_devel wget openssl coreutils cmd:dos2unix cmd:python2 cmd:python3 ';
+			if (this.data.flavor == 'hybrid') {
+				let archsuffix = '_x86'; // FIXME: for other arches.
+				pkgs += ('gcc$AS$ zlib$AS$_devel binutils$AS$ libtool$AS$ gettext$AS$ file$AS$_devel'
+					).replace(/\$AS\$/g, archsuffix);
+			}
+			this.runCommand(pkgs, function (exitcode, output) {
+				if (exitcode === 0)
+					return;
+				log('install-packages failed on builder %s: %s', this.name, output);
+				thisThis.status('broken');
+			});
+		} break;
 
 		case 'updateResult':
 			if (msg.exitcode !== 0) {
